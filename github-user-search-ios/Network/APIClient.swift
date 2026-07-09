@@ -13,18 +13,24 @@ struct APIClient {
         
         let (data,response) = try await URLSession.shared.data(for :request)
         
-        if let httpResponse = response as?  HTTPURLResponse,
-           !(200...299).contains(httpResponse.statusCode){
-            
-            if httpResponse.statusCode == 403 || httpResponse.statusCode == 422 {
-                
-                throw NetworkError.rateLimitted
-            }
-            
-            throw NetworkError.unknown
-            
+        guard let httpResponse = response as? HTTPURLResponse else{
+            throw NetworkError.unknown(statusCode: nil)
         }
-        return data
+        switch httpResponse.statusCode{
+        case 200...299:
+            return data
+            
+        case 403,429:
+            throw NetworkError.rateLimitted
+        case 422:
+            throw NetworkError.validationError
+        case 404:
+            throw NetworkError.notFound
+        case 500...599:
+            throw NetworkError.serverError(statusCode: httpResponse.statusCode)
+        default :
+            throw NetworkError.unknown(statusCode: httpResponse.statusCode)
+        }
     }
     func decode<T: Decodable> (_ data : Data) throws -> T { //Decodeに準拠したもののみ通す関数(エンドポイントを使い回すため)
         
