@@ -39,7 +39,16 @@
 
 ## 3. 設計・技術選定について
 
-- 
+1,URLSession\
+使用箇所:GitHub REST API（ユーザー検索・ユーザー詳細取得、ユーザーのリポジトリ情報の取得）との通信にURLSessionを採用した。\
+具体的な使い方: GitHub Search API（/search/users）、ユーザー詳細API（/users/{username}）、リポジトリ一覧API（/users/{username}/repos）へのGETリクエストをURLSession.shared.data(for:)で叩き、返ってきたJSONをDecodableでモデルにマッピングしている。
+
+2,SwiftTesting\
+使用箇所: EndpointのURL組み立てロジック、およびAPIClientによるGitHub API通信・レスポンスのデコード処理のユニットテストに採用した。今後、ViewModelやRepository層など他の箇所にも順次追加予定。\
+具体的な使い方: EndpointTestsで検索・ユーザー詳細・リポジトリ一覧の各URLが正しく組み立てられるかを#expectで検証し、APIClientTestsでは実際にGitHub APIへ通信（fetchData）した上でdecodeによるJSON→モデル変換が正しく行えているかを検証した。\
+SwiftTestingの採用理由\
+1,テストの意図を構造として表現しやすい:@Testアトリビュートを記載することで明示的にテストであることがわかりやすい。\
+2,アサーション表現が統一されている：#expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
 
 ## 4. 工夫した点・こだわった点
 
@@ -47,7 +56,7 @@
 
 ## 5. 苦労した点・分からなかった点・未対応の点
 
--
+- （今後対応）APIClientTestsが実APIに依存：モックなしで本物のGitHub APIを叩いているため、レート制限（60回/時）や実データ依存でテストが不安定になりやすい。URLProtocolによるスタブ化を検討中。
 
 ## 6. 生成 AI の利用について
 
@@ -57,4 +66,5 @@
 
 ## 7. 参考にした情報源（任意）
 
-- （公式ドキュメント、記事、質問サイトなど）
+- （公式ドキュメント、記事、質問サイトなど）\
+1, [Swift TestingとXCTestを使い比べてみました - Qiita](https://qiita.com/dolu/items/6a5b2af12f51018a5829)：Swift TestingとXCTestの技術選定比較に関して考える際に使用しました
