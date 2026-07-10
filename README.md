@@ -38,7 +38,7 @@
 - [ ] （例）その他:
 
 ## 3. 設計・技術選定について
-
+技術選定について\
 1,URLSession\
 使用箇所:GitHub REST API（ユーザー検索・ユーザー詳細取得、ユーザーのリポジトリ情報の取得）との通信にURLSessionを採用した。\
 具体的な使い方: GitHub Search API（/search/users）、ユーザー詳細API（/users/{username}）、リポジトリ一覧API（/users/{username}/repos）へのGETリクエストをURLSession.shared.data(for:)で叩き、返ってきたJSONをDecodableでモデルにマッピングしている。
@@ -48,7 +48,17 @@
 具体的な使い方: EndpointTestsで検索・ユーザー詳細・リポジトリ一覧の各URLが正しく組み立てられるかを#expectで検証し、APIClientTestsでは実際にGitHub APIへ通信（fetchData）した上でdecodeによるJSON→モデル変換が正しく行えているかを検証した。\
 SwiftTestingの採用理由\
 1,テストの意図を構造として表現しやすい:@Testアトリビュートを記載することで明示的にテストであることがわかりやすい。\
-2,アサーション表現が統一されている：#expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
+2,アサーション表現が統一されている：#expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。\
+
+設計について
+
+1, リポジトリ層の導入
+役割：API通信とViewModelとの間に入り、実際のデータ取得処理を実行する層として実装
+採用理由：ViewModelから通信部分の実装を切り離すことで、ViewModelの責務の範囲を減らすことができるため
+
+2, リポジトリパターン（protocolによる抽象化）
+使用箇所：URLSessionで実際にfetchする部分をprotocolとして抽象化し、本番実装（実際の通信処理）とモック（テスト用ダミーデータ）を切り替え可能にするために使用
+採用理由：URLSessionの処理部分の抽象度を上げ、モックか本番の通信処理かをViewModelから隠蔽することで、元のコードを変更せずとも単体テストを行えるようになるため
 
 ## 4. 工夫した点・こだわった点
 
@@ -66,5 +76,8 @@ SwiftTestingの採用理由\
 
 ## 7. 参考にした情報源（任意）
 
-- （公式ドキュメント、記事、質問サイトなど）\
+- （公式ドキュメント、記事、質問サイトなど）
+
 1, [Swift TestingとXCTestを使い比べてみました - Qiita](https://qiita.com/dolu/items/6a5b2af12f51018a5829)：Swift TestingとXCTestの技術選定比較に関して考える際に使用しました
+
+2, [アプリ アーキテクチャ ガイド | App architecture - Android Developers](https://developer.android.com/topic/architecture?hl=ja)：リポジトリ層の役割（データソースの抽象化、関心の分離）を理解する際の参考として使用しました

@@ -21,7 +21,7 @@ struct APIClient {
             return data
             
         case 403,429:
-            throw NetworkError.rateLimitted
+            throw NetworkError.rateLimited
         case 422:
             throw NetworkError.validationError
         case 404:
