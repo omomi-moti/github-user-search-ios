@@ -48,16 +48,24 @@
 具体的な使い方: EndpointTestsで検索・ユーザー詳細・リポジトリ一覧の各URLが正しく組み立てられるかを#expectで検証し、APIClientTestsでは実際にGitHub APIへ通信（fetchData）した上でdecodeによるJSON→モデル変換が正しく行えているかを検証した。\
 SwiftTestingの採用理由\
 1,テストの意図を構造として表現しやすい:@Testアトリビュートを記載することで明示的にテストであることがわかりやすい。\
-2,アサーション表現が統一されている：#expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。\
+2,アサーション表現が統一されている：#expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
+
+3,UserDefaults\
+使用箇所: 検索キーワードの履歴保存に採用した。\
+具体的な使い方: SearchHistoryStoreが検索実行時のキーワードを[String]としてJSONEncode/Decodeし、UserDefaultsに1つのキーで保存・読み込みしている。重複キーワードは先頭に移動、保存件数は20件を上限として超過分は末尾から間引く形にしている。\
+UserDefaultsの採用理由\
+1,データの性質に見合った実装だと判断したため：検索履歴は「順序付きの単純なリスト」であり、複数テーブル間の関連や複雑な検索条件を必要としない。この規模のデータにSwiftDataやCoreDataのようなデータベースを使用するのはオーバーエンジニアリングだと判断した。
+
+
 
 設計について
 
-1, リポジトリ層の導入
-役割：API通信とViewModelとの間に入り、実際のデータ取得処理を実行する層として実装
+1, リポジトリ層の導入\
+役割：API通信とViewModelとの間に入り、実際のデータ取得処理を実行する層として実装\
 採用理由：ViewModelから通信部分の実装を切り離すことで、ViewModelの責務の範囲を減らすことができるため
 
-2, リポジトリパターン（protocolによる抽象化）
-使用箇所：URLSessionで実際にfetchする部分をprotocolとして抽象化し、本番実装（実際の通信処理）とモック（テスト用ダミーデータ）を切り替え可能にするために使用
+2, リポジトリパターン（protocolによる抽象化）\
+使用箇所：URLSessionで実際にfetchする部分をprotocolとして抽象化し、本番実装（実際の通信処理）とモック（テスト用ダミーデータ）を切り替え可能にするために使用\
 採用理由：URLSessionの処理部分の抽象度を上げ、モックか本番の通信処理かをViewModelから隠蔽することで、元のコードを変更せずとも単体テストを行えるようになるため
 
 ## 4. 工夫した点・こだわった点
@@ -81,3 +89,5 @@ SwiftTestingの採用理由\
 1, [Swift TestingとXCTestを使い比べてみました - Qiita](https://qiita.com/dolu/items/6a5b2af12f51018a5829)：Swift TestingとXCTestの技術選定比較に関して考える際に使用しました
 
 2, [アプリ アーキテクチャ ガイド | App architecture - Android Developers](https://developer.android.com/topic/architecture?hl=ja)：リポジトリ層の役割（データソースの抽象化、関心の分離）を理解する際の参考として使用しました
+
+3, [UserDefaultsの概要と操作方法(Swift) - Qiita](https://qiita.com/uhooi/items/429cac9b798b9c0937ae)：UserDefaultsの基本的なCRUD操作や定義の仕方などを理解する参考として使いました
