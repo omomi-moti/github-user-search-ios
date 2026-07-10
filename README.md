@@ -56,7 +56,11 @@ SwiftTestingの採用理由\
 UserDefaultsの採用理由\
 1,データの性質に見合った実装だと判断したため：検索履歴は「順序付きの単純なリスト」であり、複数テーブル間の関連や複雑な検索条件を必要としない。この規模のデータにSwiftDataやCoreDataのようなデータベースを使用するのはオーバーエンジニアリングだと判断した。
 
-
+4,SwiftData\
+使用箇所: お気に入りユーザーの保存に採用した。\
+具体的な使い方: @Modelを付与したFavoriteUserクラス（username, avatarURL, name, savedAt）を定義し、ModelContainer経由で永続化する。他モデルとの関連（リレーション）は持たせず、単一モデルにとどめている。\
+SwiftDataの採用理由\
+1,データの性質に見合った実装だと判断したため：お気に入りは登録・削除の操作に加え、将来的な並び替えや絞り込みの余地があるデータであり、検索履歴（UserDefaults）とは異なりクエリ可能な手段が適していると判断した。
 
 設計について
 
@@ -91,3 +95,5 @@ UserDefaultsの採用理由\
 2, [アプリ アーキテクチャ ガイド | App architecture - Android Developers](https://developer.android.com/topic/architecture?hl=ja)：リポジトリ層の役割（データソースの抽象化、関心の分離）を理解する際の参考として使用しました
 
 3, [UserDefaultsの概要と操作方法(Swift) - Qiita](https://qiita.com/uhooi/items/429cac9b798b9c0937ae)：UserDefaultsの基本的なCRUD操作や定義の仕方などを理解する参考として使いました
+
+4, [SwiftDataめっちゃええやん。 - Qiita](https://qiita.com/dokozon0/items/0c46c432b2e873ceeb04)：@Modelの定義方法、ModelContainerの注入、context.insert()/context.delete()によるCRUD操作の基本的な流れを理解する参考として使いました
