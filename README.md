@@ -62,6 +62,19 @@ UserDefaultsの採用理由\
 SwiftDataの採用理由\
 1,データの性質に見合った実装だと判断したため：お気に入りは登録・削除の操作に加え、将来的な並び替えや絞り込みの余地があるデータであり、検索履歴（UserDefaults）とは異なりクエリ可能な手段が適していると判断した。
 
+5,Observation（@Observable）\
+使用箇所: SearchViewModel、UserDetailViewModel、FavoriteViewModelの状態管理。\
+具体的な使い方: 各ViewModelを@Observable＋@MainActorのclassにし、ViewState<T>をプロパティとして持たせている。\
+採用理由: ObservableObject＋@Published（Combine）と比べ、付け忘れの心配がなく参照プロパティ単位で再描画が最適化されるため。\
+
+6,Swift Concurrency（async/await, Task）\
+使用箇所: API通信全般、検索のdebounce制御、詳細画面の並行取得。\
+具体的な使い方: GitHubRepositoryをasync throwsで定義し、SearchViewModelはTaskのキャンセル＋Task.isCancelledで古い検索結果を破棄、UserDetailViewModelはasync letでプロフィールとリポジトリを並行取得している。\
+採用理由:
+1,従来のクロージャを用いた非同期処理と比べ、処理を同期的に書けて可読性が高い\
+2,Task.cancel()だけで「最新の結果だけ反映する」制御をシンプルに実現できること\
+3,@MainActorによってUI更新のスレッド安全性がコンパイラレベルで保証される\
+
 設計について
 
 1, リポジトリ層の導入\
@@ -74,7 +87,12 @@ SwiftDataの採用理由\
 
 ## 4. 工夫した点・こだわった点
 
--
+① Taskキャンセル部分（UserDetailViewModel)
+
+- 問題: ユーザー画面を素早く切り替えたとき、キャンセルされた古いリクエストの成功/失敗処理がそのまま実行され、新しいリクエストの結果を後から上書きしてしまう可能性があった
+- 解決方法: `await`直後と`catch`内に`guard !Task.isCancelled else { return }`を入れ、キャンセル済みなら状態更新をスキップするようにした
+- 解決できたこと: 古い（もう不要になった）リクエストの結果で`detailState`/`repoState`が誤って上書きされなくなり、常に「今表示すべきユーザー」の状態だけが画面に反映されるようになった
+
 
 ## 5. 苦労した点・分からなかった点・未対応の点
 
@@ -97,3 +115,7 @@ SwiftDataの採用理由\
 3, [UserDefaultsの概要と操作方法(Swift) - Qiita](https://qiita.com/uhooi/items/429cac9b798b9c0937ae)：UserDefaultsの基本的なCRUD操作や定義の仕方などを理解する参考として使いました
 
 4, [SwiftDataめっちゃええやん。 - Qiita](https://qiita.com/dokozon0/items/0c46c432b2e873ceeb04)：@Modelの定義方法、ModelContainerの注入、context.insert()/context.delete()によるCRUD操作の基本的な流れを理解する参考として使いました
+
+5, [SwiftのEquatableプロトコルを基礎から - Qiita](https://qiita.com/imchino/items/793bccb0384c8460d267)：`Equatable`プロトコルに準拠させることで、オブジェクト同士が同じかどうかを比較できるようになる仕組みを理解する参考として使いました。
+
+6, [deinitについて - Qiita](https://qiita.com/dogtown/items/2fe6bb8581e7e33950ad)：`deinit`がインスタンス解放時に呼ばれる仕組みと、ARC（Automatic Reference Counting）下でのメモリ管理の基本を理解する参考として使いました。Taskのキャンセル制御を`deinit`で行う際、クロージャが`self`を強参照していると`deinit`自体が呼ばれず意味をなさないケースがあることに気づくきっかけになりました

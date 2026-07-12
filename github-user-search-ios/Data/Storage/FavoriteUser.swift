@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-class FFavoriteUse{
+class FavoriteUser{
     var username : String
     var avatarURL: String
     var name : String?
