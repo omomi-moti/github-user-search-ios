@@ -8,24 +8,30 @@ class SearchViewModel{
     var state : ViewState<[SearchUser]> = .idle
     
     private let repository : GitHubRepository
-    private var searchTask : Task<Void, Never>? //<このTaskが完了した時に、何か値を返すか,このTaskがエラーを投げる可能性があるか>
+    private nonisolated var searchTask : Task<Void, Never>? //<このTaskが完了した時に、何か値を返すか,このTaskがエラーを投げる可能性があるか>
+    
+    //Task.cancel()はどのスレッドから呼んでも安全なため、deinit(nonisolated)からキャンセルできるようにnonisolatedにしている
     
     init(repository : GitHubRepository){
         self.repository = repository
     }
-    
+
+    deinit {
+        searchTask?.cancel()
+    }
+
     func onKeywordChanged(){
         searchTask?.cancel()
-        
-        guard !keyword.isEmpty else{ //キーワードの入力がない場合は呼ばれても何もしない
+
+        guard !keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else{ //キーワードの入力がない場合は呼ばれても何もしない
             state = .idle
             return
         }
         
-        searchTask = Task{
+        searchTask = Task{ [weak self] in
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else{ return }
-            await search()
+            await self?.search()
         }
         
     }
