@@ -24,17 +24,17 @@
 - [x] ユーザー詳細表示（アイコン・名前・bio・フォロワー数など）
 - [x] リポジトリ一覧表示
 - [x] リポジトリ情報の表示（説明・言語・スター数など）
-- [ ] 端末ブラウザでページを開く
+- [x] 端末ブラウザでページを開く
 - [] ローディング / エラー状態の表現
 - [x] API 通信の自前実装
 - [x] ローカル保存（再起動後も復元できる。保存手段: UserDefaults + SwiftData / 保存対象: 検索履歴(UserDefaults) / お気に入りユーザー(SwiftData)）\
-- [ ] （iOS）SwiftUI メイン + UIKit 連携を 1 箇所以上
+- [x] （iOS）SwiftUI メイン + UIKit 連携を 1 箇所以上
 - [ ] （Android）Jetpack Compose での実装
 
 ### ボーナス要件（対応したものだけ）
 
-- [ ] （例）Unit テスト
-- [ ] （例）ダークモード対応
+- [x] （例）Unit テスト
+- [x] （例）ダークモード対応
 - [ ] （例）その他:
 
 ## 3. 設計・技術選定について
@@ -90,6 +90,20 @@ SwiftDataの採用理由\
 2, リストのスクロールで見えなくなった画像リクエストを自動でキャンセルしてくれる\
 3, KFImage自体がSwiftUIのViewなので、AsyncImage同様に宣言的に書ける\
 
+
+9,UIKit\
+使用箇所: SafariView.swiftでSwiftUI ↔ UIKitのブリッジ層として利用。\
+具体的な使い方: UIViewControllerRepresentable(UIKitのUIViewControllerをSwiftUIから扱うためのプロトコル)を実装し、makeUIViewController/updateUIViewController経由でSFSafariViewControllerを組み込む。\
+採用理由:\
+1, SwiftUIには「Safariでページを開く」正式な手段が無く、UIKit(SFSafariViewController)を利用するにはUIViewControllerRepresentableでのラップが必要だった
+
+10,SFSafariViewController(SafariServices)\
+使用箇所: 詳細画面のリポジトリ行タップ時に、GitHub上の該当ページをアプリ内で表示。\
+具体的な使い方: UIViewControllerRepresentableでラップしたSafariViewを、UserDetailViewの.sheet(item:)でモーダル表示する。\
+採用理由:\
+1, WKWebViewを自前実装する場合と比べ、Safari標準UI(進む/戻る/共有/リーダーモード/完了ボタン)がそのまま使え、実装コストが低い\
+2, Safari本体とCookieを共有するため、ユーザーがGitHubにログイン済みなら、そのままログイン状態でページを閲覧できる
+
 設計について
 
 1, リポジトリ層の導入\
@@ -111,11 +125,9 @@ SwiftDataの採用理由\
 
 ## 4. 工夫した点・こだわった点
 
-① Taskキャンセル部分（UserDetailViewModel)
-
-- 問題: ユーザー画面を素早く切り替えたとき、キャンセルされた古いリクエストの成功/失敗処理がそのまま実行され、新しいリクエストの結果を後から上書きしてしまう可能性があった
-- 解決方法: `await`直後と`catch`内に`guard !Task.isCancelled else { return }`を入れ、キャンセル済みなら状態更新をスキップするようにした
-- 解決できたこと: 古い（もう不要になった）リクエストの結果で`detailState`/`repoState`が誤って上書きされなくなり、常に「今表示すべきユーザー」の状態だけが画面に反映されるようになった
+① Taskキャンセル部分（SearchViewModel）
+問題: 検索キーワードを素早く入力した際、前の検索リクエストがキャンセルされずに走り続け、後から古い結果で最新の結果を上書きしてしまう可能性があった
+解決方法: searchTask?.cancel()で前の検索をキャンセルし、await直後に guard !Task.isCancelled else { return } で二重チェックを入れた
 
 
 ## 5. 苦労した点・分からなかった点・未対応の点
@@ -145,3 +157,5 @@ SwiftDataの採用理由\
 6, [deinitについて - Qiita](https://qiita.com/dogtown/items/2fe6bb8581e7e33950ad)：`deinit`がインスタンス解放時に呼ばれる仕組みと、ARC（Automatic Reference Counting）下でのメモリ管理の基本を理解する参考として使いました。Taskのキャンセル制御を`deinit`で行う際、クロージャが`self`を強参照していると`deinit`自体が呼ばれず意味をなさないケースがあることに気づくきっかけになりました
 
 7, [MVCとMVVMアーキテクチャの違いを理解する - Qiita](https://qiita.com/k_hirofumi/items/a01a0eeef235eeef7f73)：アーキテクチャ選定にあたり、MVCとMVVMそれぞれのデータフロー・責任範囲・テストのしやすさを比較検討する参考として使いました。
+
+8, [UIKitのUIViewController/UIViewをSwiftUIで利用する場合の利用方法とその詳細 - Qiita](https://qiita.com/yimajo/items/791dc1c1693d9821c5a8)：SafariView.swiftでSFSafariViewControllerをSwiftUIから使う際、UIViewControllerRepresentableの実装テンプレート、makeUIViewController/updateUIViewControllerの呼ばれ方を確認する参考として使いました。

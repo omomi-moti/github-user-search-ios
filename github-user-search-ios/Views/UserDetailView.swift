@@ -1,9 +1,15 @@
 import SwiftUI
 
+private struct IdentifiableURL: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 struct UserDetailView: View {
     let username: String
 
     @State private var viewModel: UserDetailViewModel
+    @State private var selectedURL: IdentifiableURL?
 
     init(username: String, repository: GitHubRepository = GitHubAPIRepository()) {
         self.username = username
@@ -34,6 +40,12 @@ struct UserDetailView: View {
                 case .loaded(let repos):
                     ForEach(repos) { repo in
                         RepoRow(repo: repo)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if let url = URL(string: repo.htmlURL) {
+                                    selectedURL = IdentifiableURL(url: url)
+                                }
+                            }
                     }
                 case .error(let message):
                     RetryView(message: message, retryAction: {
@@ -46,6 +58,9 @@ struct UserDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.load(username: username)
+        }
+        .sheet(item: $selectedURL) { item in
+            SafariView(url: item.url)
         }
     }
 }
