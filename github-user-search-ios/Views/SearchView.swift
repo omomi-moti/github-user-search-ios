@@ -1,7 +1,11 @@
 import SwiftUI
 
 struct SearchView: View {
-    @State private var viewModel = SearchViewModel(repository: GitHubAPIRepository())
+    @State private var viewModel: SearchViewModel
+
+    init(repository: GitHubRepository = GitHubAPIRepository()) {
+        _viewModel = State(initialValue: SearchViewModel(repository: repository))
+    }
 
     var body: some View {
         NavigationStack {
@@ -52,5 +56,5 @@ struct SearchView: View {
 }
 
 #Preview {
-    SearchView()
+    SearchView(repository: MockGitHubRepository(shouldFail: false))
 }

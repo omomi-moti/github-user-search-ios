@@ -3,7 +3,12 @@ import SwiftUI
 struct UserDetailView: View {
     let username: String
 
-    @State private var viewModel = UserDetailViewModel(repository: GitHubAPIRepository())
+    @State private var viewModel: UserDetailViewModel
+
+    init(username: String, repository: GitHubRepository = GitHubAPIRepository()) {
+        self.username = username
+        _viewModel = State(initialValue: UserDetailViewModel(repository: repository))
+    }
 
     var body: some View {
         List {
@@ -47,6 +52,6 @@ struct UserDetailView: View {
 
 #Preview {
     NavigationStack {
-        UserDetailView(username: "octocat")
+        UserDetailView(username: "octocat", repository: MockGitHubRepository(shouldFail: false))
     }
 }
