@@ -19,15 +19,15 @@
 
 ### 必須要件
 
-- [ ] キーワードでユーザー検索
-- [ ] 検索結果の一覧表示
-- [ ] ユーザー詳細表示（アイコン・名前・bio・フォロワー数など）
-- [ ] リポジトリ一覧表示
-- [ ] リポジトリ情報の表示（説明・言語・スター数など）
+- [x] キーワードでユーザー検索
+- [x] 検索結果の一覧表示
+- [x] ユーザー詳細表示（アイコン・名前・bio・フォロワー数など）
+- [x] リポジトリ一覧表示
+- [x] リポジトリ情報の表示（説明・言語・スター数など）
 - [ ] 端末ブラウザでページを開く
-- [ ] ローディング / エラー状態の表現
-- [ ] API 通信の自前実装
-- [ ] ローカル保存（再起動後も復元できる。保存手段: ____________ / 保存対象: ____________）
+- [] ローディング / エラー状態の表現
+- [x] API 通信の自前実装
+- [x] ローカル保存（再起動後も復元できる。保存手段: UserDefaults + SwiftData / 保存対象: 検索履歴(UserDefaults) / お気に入りユーザー(SwiftData)）\
 - [ ] （iOS）SwiftUI メイン + UIKit 連携を 1 箇所以上
 - [ ] （Android）Jetpack Compose での実装
 
@@ -43,12 +43,12 @@
 使用箇所:GitHub REST API（ユーザー検索・ユーザー詳細取得、ユーザーのリポジトリ情報の取得）との通信にURLSessionを採用した。\
 具体的な使い方: GitHub Search API（/search/users）、ユーザー詳細API（/users/{username}）、リポジトリ一覧API（/users/{username}/repos）へのGETリクエストをURLSession.shared.data(for:)で叩き、返ってきたJSONをDecodableでモデルにマッピングしている。
 
-2,SwiftTesting\
-使用箇所: EndpointのURL組み立てロジック、およびAPIClientによるGitHub API通信・レスポンスのデコード処理のユニットテストに採用した。今後、ViewModelやRepository層など他の箇所にも順次追加予定。\
-具体的な使い方: EndpointTestsで検索・ユーザー詳細・リポジトリ一覧の各URLが正しく組み立てられるかを#expectで検証し、APIClientTestsでは実際にGitHub APIへ通信（fetchData）した上でdecodeによるJSON→モデル変換が正しく行えているかを検証した。\
+2, SwiftTesting\
+使用箇所: URL組み立て・API通信・Repository・ViewModel・UserDefaults永続化など、テスト可能な各層に採用した。\
+具体的な使い方: 各層に対応するテストファイル(EndpointTests, APIClientTests, RepositoryTests, SearchViewModelTests, UserDetailViewModelTests, FavoriteViewModelTests, SearchHistoryStoreTests)で、対象の振る舞いを#expectで検証している。\
 SwiftTestingの採用理由\
-1,テストの意図を構造として表現しやすい:@Testアトリビュートを記載することで明示的にテストであることがわかりやすい。\
-2,アサーション表現が統一されている：#expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
+1, テストの意図を構造として表現しやすい: @Testアトリビュートを記載することで明示的にテストであることがわかりやすい。\
+2, アサーション表現が統一されている: #expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
 
 3,UserDefaults\
 使用箇所: 検索キーワードの履歴保存に採用した。\
@@ -75,6 +75,21 @@ SwiftDataの採用理由\
 2,Task.cancel()だけで「最新の結果だけ反映する」制御をシンプルに実現できること\
 3,@MainActorによってUI更新のスレッド安全性がコンパイラレベルで保証される\
 
+7, SwiftUI\
+使用箇所: 全画面。\
+具体的な使い方: NavigationStack + searchable + navigationDestinationで遷移、TabViewで検索/お気に入りを切り替え。@State + @ObservableでViewModelと繋ぎ、@Query + @EnvironmentでSwiftDataを扱う。
+採用理由:\
+1, 宣言的UIで「状態→見た目」が一対一になり、状態のズレによるバグが起きにくい\
+2, @Observable/@Query/.taskなど状態管理・非同期・DBとの繋ぎ込みが容易\
+
+8, Kingfisher\
+使用箇所: ユーザーアバターの画像表示(AvatarImageに集約)。\
+具体的な使い方: KFImage(URL(string:))にresizable/placeholder/frame/clipShapeを繋いで表示。\
+採用理由(URLSession自前実装との比較):\
+1, キャッシュ・重複リクエスト排除・UIImage変換を自前で書かずに済む\
+2, リストのスクロールで見えなくなった画像リクエストを自動でキャンセルしてくれる\
+3, KFImage自体がSwiftUIのViewなので、AsyncImage同様に宣言的に書ける\
+
 設計について
 
 1, リポジトリ層の導入\
@@ -84,6 +99,15 @@ SwiftDataの採用理由\
 2, リポジトリパターン（protocolによる抽象化）\
 使用箇所：URLSessionで実際にfetchする部分をprotocolとして抽象化し、本番実装（実際の通信処理）とモック（テスト用ダミーデータ）を切り替え可能にするために使用\
 採用理由：URLSessionの処理部分の抽象度を上げ、モックか本番の通信処理かをViewModelから隠蔽することで、元のコードを変更せずとも単体テストを行えるようになるため
+
+3, MVVM\
+使用箇所: ロジック層全体(SearchViewModel, UserDetailViewModel, FavoriteViewModel)。\
+具体的な使い方: @Observable + @MainActorでViewModelを定義し、画面状態はViewState<T>(idle/loading/loaded/error)で表現。Repository層はprotocolで注入する。\
+採用理由(MVCとの比較):\
+1, MVCはViewController肥大化(Massive View Controller)を起こしやすいが、MVVMはロジックをViewModelに切り出せる\
+2, ViewModelがUIに依存しないため、Mockを注入したUnit Testが書ける\
+3, ViewModelがViewに依存しない構造になるため、UIフレームワークの変更やUIの作り替えの影響をViewModel側が受けにくい\
+
 
 ## 4. 工夫した点・こだわった点
 
@@ -119,3 +143,5 @@ SwiftDataの採用理由\
 5, [SwiftのEquatableプロトコルを基礎から - Qiita](https://qiita.com/imchino/items/793bccb0384c8460d267)：`Equatable`プロトコルに準拠させることで、オブジェクト同士が同じかどうかを比較できるようになる仕組みを理解する参考として使いました。
 
 6, [deinitについて - Qiita](https://qiita.com/dogtown/items/2fe6bb8581e7e33950ad)：`deinit`がインスタンス解放時に呼ばれる仕組みと、ARC（Automatic Reference Counting）下でのメモリ管理の基本を理解する参考として使いました。Taskのキャンセル制御を`deinit`で行う際、クロージャが`self`を強参照していると`deinit`自体が呼ばれず意味をなさないケースがあることに気づくきっかけになりました
+
+7, [MVCとMVVMアーキテクチャの違いを理解する - Qiita](https://qiita.com/k_hirofumi/items/a01a0eeef235eeef7f73)：アーキテクチャ選定にあたり、MVCとMVVMそれぞれのデータフロー・責任範囲・テストのしやすさを比較検討する参考として使いました。

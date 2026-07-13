@@ -8,12 +8,18 @@ class SearchViewModel{
     var state : ViewState<[SearchUser]> = .idle
     
     private let repository : GitHubRepository
-    private nonisolated var searchTask : Task<Void, Never>? //<このTaskが完了した時に、何か値を返すか,このTaskがエラーを投げる可能性があるか>
-    
+    private let historyStore : SearchHistoryStore
+    private nonisolated(unsafe) var searchTask : Task<Void, Never>? //<このTaskが完了した時に、何か値を返すか,このTaskがエラーを投げる可能性があるか>
+
     //Task.cancel()はどのスレッドから呼んでも安全なため、deinit(nonisolated)からキャンセルできるようにnonisolatedにしている
-    
-    init(repository : GitHubRepository){
+
+    init(repository : GitHubRepository, historyStore : SearchHistoryStore = SearchHistoryStore()){
         self.repository = repository
+        self.historyStore = historyStore
+    }
+
+    var recentSearches: [String] {
+        Array(historyStore.load().prefix(5))
     }
 
     deinit {
@@ -41,7 +47,7 @@ class SearchViewModel{
             let users = try await repository.searchUsers(keyword: keyword)
             guard !Task.isCancelled else{ return }
             state = .loaded(users)
-            
+            historyStore.add(keyword)
         }
         catch{
             guard !Task.isCancelled else{ return }
