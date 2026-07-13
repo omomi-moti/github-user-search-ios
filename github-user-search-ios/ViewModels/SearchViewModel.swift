@@ -8,7 +8,7 @@ class SearchViewModel{
     var state : ViewState<[SearchUser]> = .idle
     
     private let repository : GitHubRepository
-    private nonisolated var searchTask : Task<Void, Never>? //<このTaskが完了した時に、何か値を返すか,このTaskがエラーを投げる可能性があるか>
+    private nonisolated(unsafe) var searchTask : Task<Void, Never>? //<このTaskが完了した時に、何か値を返すか,このTaskがエラーを投げる可能性があるか>
     
     //Task.cancel()はどのスレッドから呼んでも安全なため、deinit(nonisolated)からキャンセルできるようにnonisolatedにしている
     
