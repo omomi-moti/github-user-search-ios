@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Kingfisher
 
 struct UserDetailHeaderView: View {
     let detail: UserDetail
@@ -14,11 +13,7 @@ struct UserDetailHeaderView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            KFImage(URL(string: detail.avatarURL))
-                .resizable()
-                .placeholder { Color.gray.opacity(0.2) }
-                .frame(width: 96, height: 96)
-                .clipShape(Circle())
+            AvatarImage(url: detail.avatarURL, size: 96)
 
             Text(detail.name ?? detail.login)
                 .font(.title2.bold())

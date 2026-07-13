@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Kingfisher
 
 struct FavoriteListView: View {
     @Query(sort: \FavoriteUser.savedAt, order: .reverse) private var favorites: [FavoriteUser]
@@ -9,12 +8,7 @@ struct FavoriteListView: View {
         List(favorites) { favorite in
             NavigationLink(value: favorite.username) {
                 HStack(spacing: 12) {
-                    KFImage(URL(string: favorite.avatarURL))
-                        .resizable()
-                        .placeholder { Color.gray.opacity(0.2) }
-                        .frame(width: 44, height: 44)
-                        .clipShape(Circle())
-
+                    AvatarImage(url: favorite.avatarURL)
                     Text(favorite.name ?? favorite.username)
                 }
             }
@@ -32,3 +26,4 @@ struct FavoriteListView: View {
     }
     .modelContainer(for: FavoriteUser.self, inMemory: true)
 }
+
