@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BED20F343003D43C00099A72 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = BED20F333003D43C00099A71 /* Kingfisher */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BE408BA22FFE728F007E2D30 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BED20F343003D43C00099A72 /* Kingfisher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = "github-user-search-ios";
 			packageProductDependencies = (
+				BED20F333003D43C00099A71 /* Kingfisher */,
 			);
 			productName = "github-user-search-ios";
 			productReference = BE408B942FFE728E007E2D30 /* github-user-search-ios.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = BE408B8B2FFE728E007E2D30;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BED20F323003D43C00099A70 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BE408B952FFE728E007E2D30 /* Products */;
 			projectDirPath = "";
@@ -605,6 +614,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BED20F323003D43C00099A70 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BED20F333003D43C00099A71 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BED20F323003D43C00099A70 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BE408B8C2FFE728E007E2D30 /* Project object */;
 }
