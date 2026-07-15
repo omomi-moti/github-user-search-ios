@@ -16,12 +16,13 @@ struct APIClientTests {
         }
         """.data(using: .utf8)!
         let client = APIClient(session: MockURLSession(statusCode: 200, data: json))
-
         let url = Endpoint.searchUsers(keyword: "swift").url
+
         let data = try await client.fetchData(url)
         let response: SearchUsersResponse = try client.decode(data)
 
-        #expect(response.items.first?.login == "swift")
+        let firstItem = try #require(response.items.first)
+        #expect(firstItem.login == "swift")
     }
 
     @Test("200レスポンスからUserDetailにデコードできる")
@@ -37,8 +38,8 @@ struct APIClientTests {
         }
         """.data(using: .utf8)!
         let client = APIClient(session: MockURLSession(statusCode: 200, data: json))
-
         let url = Endpoint.userDetail(username: "swiftlang").url
+
         let data = try await client.fetchData(url)
         let detail: UserDetail = try client.decode(data)
 
@@ -61,82 +62,32 @@ struct APIClientTests {
         ]
         """.data(using: .utf8)!
         let client = APIClient(session: MockURLSession(statusCode: 200, data: json))
-
         let url = Endpoint.repos(username: "swiftlang").url
+
         let data = try await client.fetchData(url)
         let repos: [Repo] = try client.decode(data)
 
         #expect(!repos.isEmpty)
-        #expect(repos.first?.name == "swift")
+        let firstRepo = try #require(repos.first)
+        #expect(firstRepo.name == "swift")
     }
 
-    @Test("404レスポンス時にNetworkError.notFoundがthrowされる")
-    func fetchDataThrowsNotFound() async throws {
-        let client = APIClient(session: MockURLSession(statusCode: 404, data: Data()))
+    @Test(
+        "ステータスコードに応じたNetworkErrorが正しくthrowされる",
+        arguments: [
+            (403, NetworkError.rateLimited),
+            (404, NetworkError.notFound),
+            (422, NetworkError.validationError),
+            (500, NetworkError.serverError(statusCode: 500)),
+            (999, NetworkError.unknown(statusCode: 999))
+        ]
+    )
+    func fetchDataThrowsCorrectErrorForStatusCode(statusCode: Int, expectedError: NetworkError) async {
+        let client = APIClient(session: MockURLSession(statusCode: statusCode, data: Data()))
+        let url = Endpoint.searchUsers(keyword: "x").url
 
-        do {
-            _ = try await client.fetchData(Endpoint.userDetail(username: "unknown").url)
-            Issue.record("エラーがthrowされなかった")
-        } catch NetworkError.notFound {
-            // 期待通り
-        } catch {
-            Issue.record("期待と異なるエラー: \(error)")
-        }
-    }
-
-    @Test("403レスポンス時にNetworkError.rateLimitedがthrowされる")
-    func fetchDataThrowsRateLimited() async throws {
-        let client = APIClient(session: MockURLSession(statusCode: 403, data: Data()))
-
-        do {
-            _ = try await client.fetchData(Endpoint.searchUsers(keyword: "x").url)
-            Issue.record("エラーがthrowされなかった")
-        } catch NetworkError.rateLimited {
-            // 期待通り
-        } catch {
-            Issue.record("期待と異なるエラー: \(error)")
-        }
-    }
-
-    @Test("500レスポンス時にNetworkError.serverErrorがthrowされる")
-    func fetchDataThrowsServerError() async throws {
-        let client = APIClient(session: MockURLSession(statusCode: 500, data: Data()))
-
-        do {
-            _ = try await client.fetchData(Endpoint.repos(username: "swiftlang").url)
-            Issue.record("エラーがthrowされなかった")
-        } catch NetworkError.serverError(let statusCode) {
-            #expect(statusCode == 500)
-        } catch {
-            Issue.record("期待と異なるエラー: \(error)")
-        }
-    }
-
-    @Test("422レスポンス時にNetworkError.validationErrorがthrowされる")
-    func fetchDataThrowsValidationError() async throws {
-        let client = APIClient(session: MockURLSession(statusCode: 422, data: Data()))
-
-        do {
-            _ = try await client.fetchData(Endpoint.searchUsers(keyword: "x").url)
-            Issue.record("エラーがthrowされなかった")
-        } catch NetworkError.validationError {
-            // 期待通り
-        } catch {
-            Issue.record("期待と異なるエラー: \(error)")
-        }
-    }
-
-    @Test("未知のステータスコード時にNetworkError.unknownがthrowされる")
-    func fetchDataThrowsUnknown() async throws {
-        let client = APIClient(session: MockURLSession(statusCode: 999, data: Data()))
-
-        do {
-            _ = try await client.fetchData(Endpoint.searchUsers(keyword: "x").url)
-            Issue.record("エラーがthrowされなかった")
-        } catch NetworkError.unknown(let statusCode) {
-            #expect(statusCode == 999)
-        } catch {
-            Issue.record("期待と異なるエラー: \(error)")
+        await #expect(throws: expectedError) {
+            _ = try await client.fetchData(url)
         }
     }
 
@@ -145,27 +96,17 @@ struct APIClientTests {
         let client = APIClient(session: MockURLSession(statusCode: 200, data: Data()))
         let invalidJSON = "not a json".data(using: .utf8)!
 
-        do {
+        #expect(throws: NetworkError.decodingError) {
             let _: UserDetail = try client.decode(invalidJSON)
-            Issue.record("エラーがthrowされなかった")
-        } catch NetworkError.decodingError {
-            // 期待通り
-        } catch {
-            Issue.record("期待と異なるエラー: \(error)")
         }
     }
 
     @Test("URLがnilの場合NetworkError.invalidURLがthrowされる")
-    func fetchDataThrowsInvalidURLWhenURLIsNil() async throws {
+    func fetchDataThrowsInvalidURLWhenURLIsNil() async {
         let client = APIClient(session: MockURLSession(statusCode: 200, data: Data()))
 
-        do {
+        await #expect(throws: NetworkError.invalidURL) {
             _ = try await client.fetchData(nil)
-            Issue.record("エラーがthrowされなかった")
-        } catch NetworkError.invalidURL {
-            // 期待通り
-        } catch {
-            Issue.record("期待と異なるエラー: \(error)")
         }
     }
 }
