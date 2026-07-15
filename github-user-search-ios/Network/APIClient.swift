@@ -1,7 +1,12 @@
 import Foundation
 
 struct APIClient {
-    
+    private let session: URLSessionProtocol
+
+    init(session: URLSessionProtocol = URLSession.shared) {
+        self.session = session
+    }
+
     func fetchData(_ url : URL?) async throws -> Data{
         guard  let url  else{
             throw NetworkError.invalidURL
@@ -11,7 +16,7 @@ struct APIClient {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept") //JSON形式で、GitHub APIバージョンに準拠したレスポンスを要求する
         request.setValue("github-user-search-ios", forHTTPHeaderField: "User-Agent") //リクエスト先を提示
         
-        let (data,response) = try await URLSession.shared.data(for :request)
+        let (data,response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else{
             throw NetworkError.unknown(statusCode: nil)
