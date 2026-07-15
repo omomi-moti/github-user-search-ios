@@ -120,22 +120,26 @@ SwiftDataの採用理由\
 採用理由(MVCとの比較):\
 1, MVCはViewController肥大化(Massive View Controller)を起こしやすいが、MVVMはロジックをViewModelに切り出せる\
 2, ViewModelがUIに依存しないため、Mockを注入したUnit Testが書ける\
-3, ViewModelがViewに依存しない構造になるため、UIフレームワークの変更やUIの作り替えの影響をViewModel側が受けにくい\
+3, ViewModelがViewに依存しない構造になるため、UIフレームワークの変更やUIの作り替えの影響をViewModel側が受けにくい
 
 
 ## 4. 工夫した点・こだわった点
 
-① Taskキャンセル部分（SearchViewModel）
+① Taskキャンセル部分（SearchViewModel）\
 問題: 検索キーワードを素早く入力した際、前の検索リクエストがキャンセルされずに走り続け、後から古い結果で最新の結果を上書きしてしまう可能性があった\
 解決方法: searchTask?.cancel()で前の検索をキャンセルし、await直後に guard !Task.isCancelled else { return } で二重チェックを入れた
 
-② エラーメッセージ表示の粒度の改善(NetworkError × ViewModel)
+② エラーメッセージ表示の粒度の改善(NetworkError × ViewModel)\
 問題: 元々の実装ではエラーキャッチ時にユーザーへ表示されるメッセージが、画面ごとに1種類の固定文言(「検索に失敗しました」など)しかなく、ユーザーが何が原因でエラーが出ているのか、次に何をすべきかが分かりにくかった。\
 解決方法: エラーの状態が定義されているNetworkErrorをextensionして、caseごとに対応するエラーメッセージを持たせ、ViewModelのcatch内でキャッチしたエラーに対応した文を受け取りViewに表示する実装に変更した。
 
+③ APIClientTestsのネットワーク非依存化(APIClient × URLSessionProtocol × MockURLSession)\
+問題: 元々のAPIClientTestsは実際にGitHubの本番APIへリクエストを送る実装になっており、ネットワーク不通時やレート制限(60回/時)超過時にテストが失敗したり、検索結果の順位変動によってアサーションがずれたりと、テストの安定性がコードの正しさとは無関係な要因に左右されていた。\
+解決方法: URLSessionをそのまま使うのではなく、data(for:)だけを切り出したURLSessionProtocolを定義し、APIClientの初期化時に注入できるようにした(本番はURLSessionをそのままextensionで適合させ、テスト時は固定のステータスコードとJSONを返すMockURLSessionに差し替え)。これによりテストは実ネットワークに一切触れず、GitHub APIが実際に返しうる各ステータスコード(200/403/404/422/500/未知)に対して、NetworkErrorの該当ケースと関連値(statusCodeなど)まで一致するかを検証する構成にした。
+
+
 ## 5. 苦労した点・分からなかった点・未対応の点
 
-- （今後対応）APIClientTestsが実APIに依存：モックなしで本物のGitHub APIを叩いているため、レート制限（60回/時）や実データ依存でテストが不安定になりやすい。URLProtocolによるスタブ化を検討中。
 
 ## 6. 生成 AI の利用について
 
@@ -162,3 +166,5 @@ SwiftDataの採用理由\
 7, [MVCとMVVMアーキテクチャの違いを理解する - Qiita](https://qiita.com/k_hirofumi/items/a01a0eeef235eeef7f73)：アーキテクチャ選定にあたり、MVCとMVVMそれぞれのデータフロー・責任範囲・テストのしやすさを比較検討する参考として使いました。
 
 8, [UIKitのUIViewController/UIViewをSwiftUIで利用する場合の利用方法とその詳細 - Qiita](https://qiita.com/yimajo/items/791dc1c1693d9821c5a8)：SafariView.swiftでSFSafariViewControllerをSwiftUIから使う際、UIViewControllerRepresentableの実装テンプレート、makeUIViewController/updateUIViewControllerの呼ばれ方を確認する参考として使いました。
+
+9, [Unit Testを始めよう①~DI・モック・スタブ・Modelのテスト~ #Swift - Qiita](https://qiita.com/hinakko/items/8a34ef105087d831580b)：APIClientTestsをネットワークに依存せず検証できるようにする際、URLSessionをプロトコルで抽象化してMockに差し替えるDIの構成、およびステータスコードごとにテストケースを分ける粒度の参考にしました。
