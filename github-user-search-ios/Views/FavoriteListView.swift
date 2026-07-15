@@ -5,11 +5,18 @@ struct FavoriteListView: View {
     @Query(sort: \FavoriteUser.savedAt, order: .reverse) private var favorites: [FavoriteUser]
 
     var body: some View {
-        List(favorites) { favorite in
-            NavigationLink(value: favorite.username) {
-                HStack(spacing: 12) {
-                    AvatarImage(url: favorite.avatarURL)
-                    Text(favorite.name ?? favorite.username)
+        Group {
+            if favorites.isEmpty {
+                Text("お気に入りはまだありません")
+                    .foregroundStyle(.secondary)
+            } else {
+                List(favorites) { favorite in
+                    NavigationLink(value: favorite.username) {
+                        HStack(spacing: 12) {
+                            AvatarImage(url: favorite.avatarURL)
+                            Text(favorite.name ?? favorite.username)
+                        }
+                    }
                 }
             }
         }
