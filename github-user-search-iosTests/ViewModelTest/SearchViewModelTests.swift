@@ -52,4 +52,37 @@ struct SearchViewModelTests {
             Issue.record("stateがidleになっていない")
         }
     }
+    
+    @Test("rateLimitedエラー時にメッセージが「アクセス制限」を含む")
+    func rateLimitedErrorHasSpecificMessage() async throws{
+        let repository = MockGitHubRepository(shouldFail: true, errorToThrow: .rateLimited)
+        let viewModel = SearchViewModel(repository : repository)
+        
+        viewModel.keyword = "swift"
+        viewModel.onKeywordChanged()
+        try await Task.sleep(for: .milliseconds(500))
+        
+        if case .error(let message) = viewModel.state{
+            #expect(message.contains("アクセス制限"))
+        }
+        else{
+            Issue.record("stateがerrorになっていない")
+        }
+    }
+    @Test("notFoundエラー時にメッセージが「見つかりませんでした」を含む")
+    func notFoundErrorHasSpecificMessage() async throws {
+        let repository = MockGitHubRepository(shouldFail: true, errorToThrow: .notFound)
+        let viewModel = SearchViewModel(repository: repository)
+        
+        viewModel.keyword = "swift"
+        viewModel.onKeywordChanged()
+        try await Task.sleep(for: .milliseconds(500))
+        
+        if case .error(let message) = viewModel.state {
+            #expect(message.contains("見つかりませんでした"))
+        } else {
+            Issue.record("stateがerrorになっていない")
+        }
+    }
 }
+

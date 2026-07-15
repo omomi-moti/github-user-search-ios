@@ -39,9 +39,9 @@ struct UserDetailViewModelTests{
     func loadFail() async throws {
         let repository = MockGitHubRepository(shouldFail: true)
         let viewModel = UserDetailViewModel(repository: repository)
-        
+
         await viewModel.load(username: "swift")
-        
+
         if case .error = viewModel.detailState{
             // detailStateがerrorならOK
         }
@@ -52,6 +52,34 @@ struct UserDetailViewModelTests{
             // repoStateがerrorならOK
         } else {
             Issue.record("reposStateがerrorになっていない")
+        }
+    }
+
+    @Test("detailState取得失敗時にNetworkErrorの種類に応じたメッセージが返る")
+    func detailErrorHasSpecificMessage() async throws {
+        let repository = MockGitHubRepository(shouldFail: true, errorToThrow: .notFound)
+        let viewModel = UserDetailViewModel(repository: repository)
+
+        await viewModel.load(username: "swift")
+
+        if case .error(let message) = viewModel.detailState {
+            #expect(message.contains("見つかりませんでした"))
+        } else {
+            Issue.record("detailStateがerrorになっていない")
+        }
+    }
+
+    @Test("repoState取得失敗時にNetworkErrorの種類に応じたメッセージが返る")
+    func repoErrorHasSpecificMessage() async throws {
+        let repository = MockGitHubRepository(shouldFail: true, errorToThrow: .rateLimited)
+        let viewModel = UserDetailViewModel(repository: repository)
+
+        await viewModel.load(username: "swift")
+
+        if case .error(let message) = viewModel.repoState {
+            #expect(message.contains("アクセス制限"))
+        } else {
+            Issue.record("repoStateがerrorになっていない")
         }
     }
 }

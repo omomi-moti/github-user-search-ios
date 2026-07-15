@@ -51,7 +51,8 @@ class SearchViewModel{
         }
         catch{
             guard !Task.isCancelled else{ return }
-            state = .error("検索に失敗しました")
+            let message = (error as? NetworkError)?.userMessage ?? "検索に失敗しました"
+            state = .error(message)
         }
     }
 }

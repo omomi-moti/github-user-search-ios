@@ -27,7 +27,8 @@ class UserDetailViewModel{
         }
         catch{
             guard !Task.isCancelled else { return }
-            detailState = .error("詳細情報の取得に失敗しました")
+            let message = (error as? NetworkError)?.userMessage ?? "詳細情報の取得に失敗しました"
+            detailState = .error(message)
         }
         
         do{
@@ -36,11 +37,10 @@ class UserDetailViewModel{
             repoState = .loaded(repos)
         }
         catch{
-            guard !Task.isCancelled else { return }  
-            repoState = .error("リポジトリ一覧の取得に失敗しました")
+            guard !Task.isCancelled else { return }
+            let message = (error as? NetworkError)?.userMessage ?? "リポジトリ一覧の取得に失敗しました"
+            repoState = .error(message)
         }
         
     }
 }
-
-
