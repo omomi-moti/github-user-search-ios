@@ -12,8 +12,8 @@ struct SearchView: View {
             content
                 .navigationTitle("ユーザー検索")
                 .searchable(text: $viewModel.keyword, prompt: "ユーザー名を入力")
-                .onChange(of: viewModel.keyword) {
-                    viewModel.onKeywordChanged()
+                .task(id: viewModel.keyword) {
+                    await viewModel.search()
                 }
                 .navigationDestination(for: String.self) { username in
                     UserDetailView(username: username)
@@ -33,7 +33,6 @@ struct SearchView: View {
                         ForEach(viewModel.recentSearches, id: \.self) { keyword in
                             Button(keyword) {
                                 viewModel.keyword = keyword
-                                viewModel.onKeywordChanged()
                             }
                         }
                     }
@@ -49,7 +48,7 @@ struct SearchView: View {
             }
         case .error(let message):
             RetryView(message: message, retryAction: {
-                viewModel.onKeywordChanged()
+                Task { await viewModel.search() }
             })
         }
     }
