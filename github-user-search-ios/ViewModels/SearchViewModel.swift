@@ -3,17 +3,14 @@ import Observation
 
 @Observable
 @MainActor
-class SearchViewModel{
-    var keyword : String = ""
-    var state : ViewState<[SearchUser]> = .idle
-    
-    private let repository : GitHubRepository
-    private let historyStore : SearchHistoryStore
-    private nonisolated(unsafe) var searchTask : Task<Void, Never>? //<このTaskが完了した時に、何か値を返すか,このTaskがエラーを投げる可能性があるか>
+class SearchViewModel {
+    var keyword: String = ""
+    var state: ViewState<[SearchUser]> = .idle
 
-    //Task.cancel()はどのスレッドから呼んでも安全なため、deinit(nonisolated)からキャンセルできるようにnonisolatedにしている
+    private let repository: GitHubRepository
+    private let historyStore: SearchHistoryStore
 
-    init(repository : GitHubRepository, historyStore : SearchHistoryStore = SearchHistoryStore()){
+    init(repository: GitHubRepository, historyStore: SearchHistoryStore = SearchHistoryStore()) {
         self.repository = repository
         self.historyStore = historyStore
     }
@@ -22,38 +19,25 @@ class SearchViewModel{
         Array(historyStore.load().prefix(5))
     }
 
-    deinit {
-        searchTask?.cancel()
-    }
-
-    func onKeywordChanged(){
-        searchTask?.cancel()
-
-        guard !keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else{ //キーワードの入力がない場合は呼ばれても何もしない
+    func search() async {
+        guard !keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             state = .idle
             return
         }
-        
-        searchTask = Task{ [weak self] in
-            try? await Task.sleep(for: .milliseconds(300))
-            guard !Task.isCancelled else{ return }
-            await self?.search()
-        }
-        
-    }
-    private func search() async{
+
+        try? await Task.sleep(for: .milliseconds(300))
+        guard !Task.isCancelled else { return }
+
         state = .loading
-        do{
+        do {
             let users = try await repository.searchUsers(keyword: keyword)
-            guard !Task.isCancelled else{ return }
+            guard !Task.isCancelled else { return }
             state = .loaded(users)
             historyStore.add(keyword)
-        }
-        catch{
-            guard !Task.isCancelled else{ return }
+        } catch {
+            guard !Task.isCancelled else { return }
             let message = (error as? NetworkError)?.userMessage ?? "検索に失敗しました"
             state = .error(message)
         }
     }
 }
-
