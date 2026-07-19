@@ -38,14 +38,18 @@ struct UserDetailView: View {
                 case .idle, .loading:
                     ProgressView()
                 case .loaded(let repos):
-                    ForEach(repos) { repo in
-                        RepoRow(repo: repo)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                if let url = URL(string: repo.htmlURL) {
-                                    selectedURL = IdentifiableURL(url: url)
+                    if repos.isEmpty {
+                        ContentUnavailableView("リポジトリがありません", systemImage: "folder")
+                    } else {
+                        ForEach(repos) { repo in
+                            RepoRow(repo: repo)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if let url = URL(string: repo.htmlURL) {
+                                        selectedURL = IdentifiableURL(url: url)
+                                    }
                                 }
-                            }
+                        }
                     }
                 case .error(let message):
                     RetryView(message: message, retryAction: {
