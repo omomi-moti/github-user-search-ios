@@ -7,8 +7,7 @@ struct FavoriteListView: View {
     var body: some View {
         Group {
             if favorites.isEmpty {
-                Text("お気に入りはまだありません")
-                    .foregroundStyle(.secondary)
+                ContentUnavailableView("お気に入りはまだありません", systemImage: "star")
             } else {
                 List(favorites) { favorite in
                     NavigationLink(value: favorite.username) {
