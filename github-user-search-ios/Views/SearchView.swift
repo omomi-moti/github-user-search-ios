@@ -42,7 +42,7 @@ struct SearchView: View {
             ProgressView()
         case .loaded(let users):
             if users.isEmpty {
-                ContentUnavailableView.search(text: viewModel.keyword)
+                ContentUnavailableView("「\(viewModel.keyword)」に一致するユーザーが見つかりません", systemImage: "magnifyingglass")
             } else {
                 List(users, id: \.id) { user in
                     NavigationLink(value: user.login) {
