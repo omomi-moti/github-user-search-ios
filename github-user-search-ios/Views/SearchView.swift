@@ -41,9 +41,13 @@ struct SearchView: View {
         case .loading:
             ProgressView()
         case .loaded(let users):
-            List(users, id: \.id) { user in
-                NavigationLink(value: user.login) {
-                    SearchUserRow(user: user)
+            if users.isEmpty {
+                ContentUnavailableView.search(text: viewModel.keyword)
+            } else {
+                List(users, id: \.id) { user in
+                    NavigationLink(value: user.login) {
+                        SearchUserRow(user: user)
+                    }
                 }
             }
         case .error(let message):
