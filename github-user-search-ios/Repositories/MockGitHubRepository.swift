@@ -27,7 +27,7 @@ struct MockGitHubRepository : GitHubRepository{
         )
     }
 
-    func fetchUserRepositories(username: String) async throws -> [Repo] {
+    func fetchUserRepositories(username: String, page: Int) async throws -> [Repo] {
         if shouldFail {
             throw errorToThrow
         }
