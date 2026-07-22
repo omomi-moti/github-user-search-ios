@@ -7,15 +7,15 @@ private struct IdentifiableURL: Identifiable {
 
 struct UserDetailView: View {
     let username: String
-
+    
     @State private var viewModel: UserDetailViewModel
     @State private var selectedURL: IdentifiableURL?
-
+    
     init(username: String, repository: GitHubRepository = GitHubAPIRepository()) {
         self.username = username
         _viewModel = State(initialValue: UserDetailViewModel(repository: repository))
     }
-
+    
     var body: some View {
         List {
             Section {
@@ -32,7 +32,7 @@ struct UserDetailView: View {
                 }
             }
             .listRowSeparator(.hidden)
-
+            
             Section("Repositories") {
                 switch viewModel.repoState {
                 case .idle, .loading:
@@ -49,6 +49,14 @@ struct UserDetailView: View {
                                         selectedURL = IdentifiableURL(url: url)
                                     }
                                 }
+                                .onAppear {
+                                    if repo.id == repos.last?.id {
+                                        Task { await viewModel.loadMoreRepos(username: username) }
+                                    }
+                                }
+                        }
+                        if viewModel.isLoadingMore {
+                            ProgressView()
                         }
                     }
                 case .error(let message):
