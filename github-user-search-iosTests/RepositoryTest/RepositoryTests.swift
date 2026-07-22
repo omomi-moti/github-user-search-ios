@@ -59,7 +59,7 @@ struct RepositoryTests {
           }
         ]
         """)
-        let repos = try await repository.fetchUserRepositories(username: "swift")
+        let repos = try await repository.fetchUserRepositories(username: "swift", page: 1)
 
         #expect(repos.count == 1)
         #expect(repos.first?.name == "Hello-World")

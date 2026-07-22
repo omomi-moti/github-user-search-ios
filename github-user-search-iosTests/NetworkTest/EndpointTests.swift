@@ -15,7 +15,7 @@ struct EndpointTests {
     }
     @Test("リポジトリ一覧のURLを正しく組み立てられる")
     func reposURLISCorrect(){
-        let url = Endpoint.repos(username: "swift").url
-        #expect(url?.absoluteString == "https://api.github.com/users/swift/repos")
+        let url = Endpoint.repos(username: "swift", page: 1).url
+        #expect(url?.absoluteString == "https://api.github.com/users/swift/repos?page=1&per_page=30")
     }
 }
