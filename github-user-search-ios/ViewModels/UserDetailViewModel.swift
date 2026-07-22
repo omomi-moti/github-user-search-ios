@@ -6,9 +6,15 @@ import Observation
 class UserDetailViewModel{
     var detailState : ViewState<UserDetail> = .idle
     var repoState : ViewState<[Repo]> = .idle
-
+    var isLoadingMore = false
+    
+    private var currentPage = 1
+    private var hasMorePages = true
+    private var repos : [Repo] = []
+    
+    
     private let repository : GitHubRepository
-        
+    
     init(repository : GitHubRepository){
         self.repository = repository
     }
@@ -17,8 +23,12 @@ class UserDetailViewModel{
         detailState = .loading
         repoState = .loading
         
+        currentPage = 1
+        hasMorePages = true
+        repos = []
+        
         async let detailResult = repository.fetchUserDetail(username: username)
-        async let repoResult = repository.fetchUserRepositories(username: username)
+        async let repoResult = repository.fetchUserRepositories(username: username,page : 1)
         
         do{
             let detail = try await detailResult
@@ -32,9 +42,11 @@ class UserDetailViewModel{
         }
         
         do{
-            let repos = try await repoResult
+            let newRepos = try await repoResult
             guard !Task.isCancelled else { return }
+            repos = newRepos
             repoState = .loaded(repos)
+            if newRepos.count < 30 { hasMorePages = false }
         }
         catch{
             guard !Task.isCancelled else { return }
@@ -42,5 +54,23 @@ class UserDetailViewModel{
             repoState = .error(message)
         }
         
+    }
+    func loadMoreRepos(username : String) async {
+        guard hasMorePages , !isLoadingMore else { return }
+        isLoadingMore = true
+        currentPage += 1
+        defer { isLoadingMore = false }
+
+        do{
+            let newRepos = try await repository.fetchUserRepositories(username: username, page: currentPage)
+            guard !Task.isCancelled else { return }
+            repos.append(contentsOf: newRepos)
+            repoState = .loaded(repos)
+            if newRepos.count < 30 { hasMorePages = false }
+        }
+        catch {
+            guard !Task.isCancelled else { return }
+            currentPage -= 1
+        }
     }
 }
