@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve SPM dependencies
+        run: xcodebuild -resolvePackageDependencies -project github-user-search-ios.xcodeproj -scheme github-user-search-ios
+
+      - name: Build
+        run: >
+          xcodebuild build
+          -project github-user-search-ios.xcodeproj
+          -scheme github-user-search-ios
+          -destination 'platform=iOS Simulator,name=iPhone 16'
+
+      - name: Unit Test
+        run: >
+          xcodebuild test
+          -project github-user-search-ios.xcodeproj
+          -scheme github-user-search-ios
+          -destination 'platform=iOS Simulator,name=iPhone 16'
+          -only-testing:github-user-search-iosTests
