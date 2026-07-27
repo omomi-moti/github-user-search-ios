@@ -68,8 +68,9 @@ UserDefaultsの採用理由\
 4, SwiftData\
 使用箇所: お気に入りユーザーの保存に採用した。\
 具体的な使い方: @Modelを付与したFavoriteUserクラス（username, avatarURL, name, savedAt）を定義し、ModelContainer経由で永続化する。他モデルとの関連（リレーション）は持たせず、単一モデルにとどめている。\
-SwiftDataの採用理由\
-1, データの性質に見合った実装だと判断したため：お気に入りは登録・削除の操作に加え、将来的な並び替えや絞り込みの余地があるデータであり、検索履歴（UserDefaults）とは異なりクエリ可能な手段が適していると判断した。
+採用理由(UserDefaultsとの比較)\
+1, データ構造が、複合データであるため：お気に入りはusername / avatarURL / name / savedAtを持つ構造化されたデータで、String単体の検索履歴とは性質が異なる。\
+2, クエリが必要なため：一覧はsavedAtの降順で表示しており、@Query(sort:)を1行書くだけでソート済みの配列が取れ、追加・削除もViewに自動反映される。UserDefaultsの場合は毎回全件デコードして自分でソートすることになる。
 
 5, Observation（@Observable）\
 使用箇所: SearchViewModel、UserDetailViewModel、FavoriteViewModelの状態管理。\
