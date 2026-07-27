@@ -40,7 +40,7 @@ iOS（Swift / SwiftUI）
 
 ## 工夫した点
 
-- 検索キーワード入力時、SwiftUIの`.task(id:)`でdebounce（300ms）を実装し、古い検索結果が最新の結果を上書きしないようにした
+- 検索キーワード入力時、`SearchViewModel`で300msのdebounceを入れ、SwiftUIの`.task(id:)`によるキャンセルと組み合わせることで、古い検索結果が最新の結果を上書きしないようにした
 - `NetworkError`をケースごとにユーザー向けメッセージへマッピングし、通信エラーの原因が画面上で伝わるようにした
 - `APIClientTests`を`URLSessionProtocol`経由のMockに置き換え、実ネットワークやGitHub APIのレート制限に左右されない安定したテストにした
 
