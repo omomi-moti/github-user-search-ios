@@ -36,7 +36,7 @@ iOS（Swift / SwiftUI）
 
 ## 使用ライブラリ
 
-- [Kingfisher](https://github.com/onevcat/Kingfisher): ユーザーアバター画像の非同期読み込み・キャッシュのために採用（キャッシュ・重複リクエスト排除・スクロールアウト時のキャンセルを自前実装せずに済むため）
+- [Kingfisher](https://github.com/onevcat/Kingfisher): ユーザーアバター画像の非同期読み込み・キャッシュのために採用（キャッシュ・重複リクエスト排除を自前実装せずに済むため）
 
 ## 工夫した点
 
