@@ -37,7 +37,8 @@
 - [x] ダークモード対応(標準的なコンポーネントしか使用していないため、SwiftUI側が自動で対応してくれている)
 - [x] 画像キャッシュ（Kingfisher）
 - [x] リトライ処理(RetryViewによるユーザー手動リトライ)
-- [x] ページネーション
+- [x] ページネーション(リポジトリ一覧のみ。検索結果は未対応)
+- [x] CI(GitHub Actionsでビルド・Unit Testを自動実行。Lint / Formatは未導入)
 
 ## 3. 設計・技術選定について
 
@@ -118,8 +119,8 @@ SwiftDataの採用理由\
 採用理由: ViewModelから通信部分の実装を切り離すことで、ViewModelの責務の範囲を減らすことができるため
 
 2, リポジトリパターン（protocolによる抽象化）\
-使用箇所: URLSessionで実際にfetchする部分をprotocolとして抽象化し、本番実装（実際の通信処理）とモック（テスト用ダミーデータ）を切り替え可能にするために使用\
-採用理由: URLSessionの処理部分の抽象度を上げ、モックか本番の通信処理かをViewModelから隠蔽することで、元のコードを変更せずとも単体テストを行えるようになるため
+使用箇所: GitHubRepositoryをprotocolとして定義し、本番実装のGitHubAPIRepositoryとテスト用のMockGitHubRepositoryを切り替えられるようにした。\
+採用理由: ViewModelがprotocolに依存するため、通信の実装を変えずに単体テストが書ける。またURLSessionProtocolでのモックと違い、MockGitHubRepositoryは[SearchUser]などのモデルを直接返すため、ViewModelのテストでJSONやステータスコードを用意する必要がない。
 
 3, MVVM\
 使用箇所: ロジック層全体(SearchViewModel, UserDetailViewModel, FavoriteViewModel)。\
