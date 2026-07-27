@@ -87,12 +87,13 @@ SwiftDataの採用理由\
 2, @Observable/@Query/.taskなど状態管理・非同期・DBとの繋ぎ込みが容易\
 
 8, Kingfisher\
-使用箇所: ユーザーアバターの画像表示(AvatarImageに集約)。\
+使用箇所: ユーザーアバターの画像表示。AvatarImageに集約し、検索結果一覧・お気に入り一覧・ユーザー詳細画面の3箇所で使用。\
 具体的な使い方: KFImage(URL(string:))にresizable/placeholder/frame/clipShapeを繋いで表示。\
-採用理由(URLSession自前実装との比較):\
-1, キャッシュ・重複リクエスト排除・UIImage変換を自前で書かずに済む\
-2, リストのスクロールで見えなくなった画像リクエストを自動でキャンセルしてくれる\
-3, KFImage自体がSwiftUIのViewなので、AsyncImage同様に宣言的に書ける\
+採用理由(標準のAsyncImageとの比較):\
+1, AsyncImageはデコード済み画像のメモリキャッシュを持たず、一覧をスクロールして戻るたびに再デコードが走る。3箇所のうち2箇所が一覧のため、この差が影響すると判断した\
+2, Kingfisherはメモリとディスクの2段キャッシュを持ち、同一URLへの重複リクエストも1本にまとめられる\
+
+補足: WWDC26でAsyncImageにもHTTPキャッシュが入ったが、iOS 27のSDKはXcode 27に含まれるため、Xcode 26.1.1で開発している本アプリでは利用できない。\
 
 9, UIKit\
 使用箇所: SafariView.swiftでSwiftUI ↔ UIKitのブリッジ層として利用。\
