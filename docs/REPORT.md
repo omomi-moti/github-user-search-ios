@@ -51,12 +51,13 @@
 1, API通信の自前実装が必須要件であり、通信ライブラリを使わない前提で設計した\
 2, エンドポイントが3本・すべてGET・認証なし・共通ヘッダ2つのみで、標準APIで書ける範囲を超えていなかった\
 
-2, SwiftTesting\
+2, Swift Testing\
 使用箇所: URL組み立て・API通信・Repository・ViewModel・UserDefaults永続化など、テスト可能な各層に採用した。\
 具体的な使い方: 各層に対応するテストファイル(EndpointTests, APIClientTests, RepositoryTests, SearchViewModelTests, UserDetailViewModelTests, FavoriteViewModelTests, SearchHistoryStoreTests)で、対象の振る舞いを#expectで検証している。\
-SwiftTestingの採用理由\
-1, テストの意図を構造として表現しやすい: @Testアトリビュートを記載することで明示的にテストであることがわかりやすい。\
-2, アサーション表現が統一されている: #expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
+採用理由(XCTestとの比較)\
+1, @Test(arguments:)でAPIClientのステータスコード判定を403/404/422/500/999の5パターンに集約している。XCTestでforループを回す場合と違い、引数ごとに独立したテストケースとして扱われるため、どのステータスコードで失敗したかが分かる。\
+2, エラーの検証が簡潔に書ける: #expect(throws:)がenumの関連値まで比較するため、serverError(statusCode: 500)のような関連値付きのケースも1行で検証できる。\
+3, アサーション表現が統一されている: #expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
 
 3, UserDefaults\
 使用箇所: 検索キーワードの履歴保存に採用した。\
