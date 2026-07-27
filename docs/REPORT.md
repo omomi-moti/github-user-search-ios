@@ -135,9 +135,9 @@
 
 ## 4. 工夫した点・こだわった点
 
-① Taskキャンセル部分（SearchViewModel）\
-問題: 検索キーワードを素早く入力した際、前の検索リクエストがキャンセルされずに走り続け、後から古い結果で最新の結果を上書きしてしまう可能性があった\
-解決方法: SwiftUIの.task(id:)にTask管理を委ね、keywordが変わるたびに前のTaskを自動キャンセルさせたうえで、await直後に guard !Task.isCancelled else { return } で二重チェックを入れた
+① 検索のdebounceとTaskキャンセル（SearchViewModel）\
+問題: 検索キーワードを素早く入力した際、リクエストの返る順序が保証されず、古い結果が最新の結果を上書きしてしまう可能性があった\
+解決方法: search()の冒頭で300msのTask.sleepを入れ、search()自体は.task(id: keyword)のクロージャから呼ぶことで、keywordが変わるたびにSwiftUIが前のTaskをキャンセルする形にした。300ms以内に次の入力が来た場合は待機中に抜けるため、リクエスト自体が発生しない。あわせて、キャンセルされたTaskがstateを書き換えないよう、stateを更新する3箇所(sleep後・通信成功後・catch内)にguard !Task.isCancelled else { return }を入れている。catch内にも必要なのは、通信中のキャンセルがCancellationErrorとしてcatchに入るため、正常系であるキャンセルでエラーメッセージを表示しないようにするため。
 
 ② エラーメッセージ表示の粒度の改善(NetworkError × ViewModel)\
 問題: 元々の実装ではエラーキャッチ時にユーザーへ表示されるメッセージが、画面ごとに1種類の固定文言(「検索に失敗しました」など)しかなく、ユーザーが何が原因でエラーが出ているのか、次に何をすべきかが分かりにくかった。\
