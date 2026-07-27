@@ -45,7 +45,10 @@
 
 1, URLSession\
 使用箇所: GitHub REST API（ユーザー検索・ユーザー詳細取得、ユーザーのリポジトリ情報の取得）との通信にURLSessionを採用した。\
-具体的な使い方: GitHub Search API（/search/users）、ユーザー詳細API（/users/{username}）、リポジトリ一覧API（/users/{username}/repos）へのGETリクエストをURLSession.shared.data(for:)で叩き、返ってきたJSONをDecodableでモデルにマッピングしている。
+具体的な使い方: 各エンドポイントへGETリクエストを送り、返ってきたJSONをDecodableでモデルにマッピングしている。通信部分はテストで差し替えられるよう、data(for:)だけを持つURLSessionProtocolをAPIClientに注入している。\
+採用理由:\
+1, API通信の自前実装が必須要件であり、通信ライブラリを使わない前提で設計した\
+2, エンドポイントが3本・すべてGET・認証なし・共通ヘッダ2つのみで、標準APIで書ける範囲を超えていなかった\
 
 2, SwiftTesting\
 使用箇所: URL組み立て・API通信・Repository・ViewModel・UserDefaults永続化など、テスト可能な各層に採用した。\
