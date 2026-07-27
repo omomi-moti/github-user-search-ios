@@ -76,11 +76,11 @@
 5, Observation（@Observable）\
 使用箇所: SearchViewModel、UserDetailViewModel、FavoriteViewModelの状態管理。\
 具体的な使い方: 各ViewModelを@Observable＋@MainActorのclassにし、SearchViewModelとUserDetailViewModelではViewState<T>をプロパティとして持たせている。\
-採用理由: ObservableObject＋@Published（Combine）と比べ、付け忘れの心配がなく参照プロパティ単位で再描画が最適化されるため。\
+採用理由(ObservableObject＋@Publishedとの比較): @Publishedの付け忘れが起きないことに加え、Viewのbody評価時に実際に読まれたプロパティだけを追跡するため、読んでいないプロパティが変わっても再描画されない。\
 
 6, Swift Concurrency（async/await, Task）\
 使用箇所: API通信全般、検索のdebounce制御、詳細画面の並行取得。\
-具体的な使い方: GitHubRepositoryをasync throwsで定義し、SearchViewModelは.task(id:)による自動キャンセル＋Task.isCancelledで古い検索結果を破棄、UserDetailViewModelはasync letでプロフィールとリポジトリを並行取得している。\
+具体的な使い方: GitHubRepositoryをasync throwsで定義し、SearchViewModelはsearch()の冒頭で300msのTask.sleepによるdebounceを入れ、.task(id:)によるキャンセルとTask.isCancelledのチェックを組み合わせて古い検索結果を破棄している。UserDetailViewModelはasync letでプロフィールとリポジトリを並行取得している。\
 採用理由:\
 1, 従来のクロージャを用いた非同期処理と比べ、処理を同期的に書けて可読性が高い\
 2, .task(id:)とTask.isCancelledの組み合わせで「最新の結果だけ反映する」制御をシンプルに実現できること\
