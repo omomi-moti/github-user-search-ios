@@ -37,7 +37,8 @@
 - [x] ダークモード対応(標準的なコンポーネントしか使用していないため、SwiftUI側が自動で対応してくれている)
 - [x] 画像キャッシュ（Kingfisher）
 - [x] リトライ処理(RetryViewによるユーザー手動リトライ)
-- [x] ページネーション
+- [x] ページネーション(リポジトリ一覧のみ。検索結果は未対応)
+- [x] CI(GitHub Actionsでビルド・Unit Testを自動実行。Lint / Formatは未導入)
 
 ## 3. 設計・技術選定について
 
@@ -45,35 +46,41 @@
 
 1, URLSession\
 使用箇所: GitHub REST API（ユーザー検索・ユーザー詳細取得、ユーザーのリポジトリ情報の取得）との通信にURLSessionを採用した。\
-具体的な使い方: GitHub Search API（/search/users）、ユーザー詳細API（/users/{username}）、リポジトリ一覧API（/users/{username}/repos）へのGETリクエストをURLSession.shared.data(for:)で叩き、返ってきたJSONをDecodableでモデルにマッピングしている。
+具体的な使い方: 各エンドポイントへGETリクエストを送り、返ってきたJSONをDecodableでモデルにマッピングしている。通信部分はテストで差し替えられるよう、data(for:)だけを持つURLSessionProtocolをAPIClientに注入している。\
+採用理由:\
+1, API通信の自前実装が必須要件であり、通信ライブラリを使わない前提で設計した\
+2, エンドポイントが3本・すべてGET・認証なし・共通ヘッダ2つのみで、標準APIで書ける範囲を超えていなかった\
 
-2, SwiftTesting\
+2, Swift Testing\
 使用箇所: URL組み立て・API通信・Repository・ViewModel・UserDefaults永続化など、テスト可能な各層に採用した。\
 具体的な使い方: 各層に対応するテストファイル(EndpointTests, APIClientTests, RepositoryTests, SearchViewModelTests, UserDetailViewModelTests, FavoriteViewModelTests, SearchHistoryStoreTests)で、対象の振る舞いを#expectで検証している。\
-SwiftTestingの採用理由\
-1, テストの意図を構造として表現しやすい: @Testアトリビュートを記載することで明示的にテストであることがわかりやすい。\
-2, アサーション表現が統一されている: #expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
+採用理由(XCTestとの比較)\
+1, @Test(arguments:)でAPIClientのステータスコード判定を403/404/422/500/999の5パターンに集約している。XCTestでforループを回す場合と違い、引数ごとに独立したテストケースとして扱われるため、どのステータスコードで失敗したかが分かる。\
+2, エラーの検証が簡潔に書ける: #expect(throws:)がenumの関連値まで比較するため、serverError(statusCode: 500)のような関連値付きのケースも1行で検証できる。\
+3, アサーション表現が統一されている: #expectで表現でき、XCTestのXCTAssertEqualやXCTAssertFalseのような使い分けが不要である。
 
 3, UserDefaults\
 使用箇所: 検索キーワードの履歴保存に採用した。\
 具体的な使い方: SearchHistoryStoreが検索実行時のキーワードを[String]としてJSONEncode/Decodeし、UserDefaultsに1つのキーで保存・読み込みしている。重複キーワードは先頭に移動、保存件数は20件を上限として超過分は末尾から間引く形にしている。\
-UserDefaultsの採用理由\
-1, データの性質に見合った実装だと判断したため：検索履歴は「順序付きの単純なリスト」であり、複数テーブル間の関連や複雑な検索条件を必要としない。この規模のデータにSwiftDataやCoreDataのようなデータベースを使用するのはオーバーエンジニアリングだと判断した。
+採用理由(SwiftDataとの比較)\
+1, 1件がString単体であるため：検索履歴は順序付きの文字列リストで、複数の属性を持つ構造化されたデータではない。\
+2, クエリが不要なため：全件読んで先頭5件を表示するだけで、並び替えや絞り込みを必要としない。この規模でSwiftDataやCoreDataのようなデータベースを使うのはオーバーエンジニアリングだと判断した。
 
 4, SwiftData\
 使用箇所: お気に入りユーザーの保存に採用した。\
 具体的な使い方: @Modelを付与したFavoriteUserクラス（username, avatarURL, name, savedAt）を定義し、ModelContainer経由で永続化する。他モデルとの関連（リレーション）は持たせず、単一モデルにとどめている。\
-SwiftDataの採用理由\
-1, データの性質に見合った実装だと判断したため：お気に入りは登録・削除の操作に加え、将来的な並び替えや絞り込みの余地があるデータであり、検索履歴（UserDefaults）とは異なりクエリ可能な手段が適していると判断した。
+採用理由(UserDefaultsとの比較)\
+1, データ構造が、複合データであるため：お気に入りはusername / avatarURL / name / savedAtを持つ構造化されたデータで、String単体の検索履歴とは性質が異なる。\
+2, クエリが必要なため：一覧はsavedAtの降順で表示しており、@Query(sort:)を1行書くだけでソート済みの配列が取れ、追加・削除もViewに自動反映される。UserDefaultsの場合は毎回全件デコードして自分でソートすることになる。
 
 5, Observation（@Observable）\
 使用箇所: SearchViewModel、UserDetailViewModel、FavoriteViewModelの状態管理。\
 具体的な使い方: 各ViewModelを@Observable＋@MainActorのclassにし、SearchViewModelとUserDetailViewModelではViewState<T>をプロパティとして持たせている。\
-採用理由: ObservableObject＋@Published（Combine）と比べ、付け忘れの心配がなく参照プロパティ単位で再描画が最適化されるため。\
+採用理由(ObservableObject＋@Publishedとの比較): @Publishedの付け忘れが起きないことに加え、Viewのbody評価時に実際に読まれたプロパティだけを追跡するため、読んでいないプロパティが変わっても再描画されない。\
 
 6, Swift Concurrency（async/await, Task）\
 使用箇所: API通信全般、検索のdebounce制御、詳細画面の並行取得。\
-具体的な使い方: GitHubRepositoryをasync throwsで定義し、SearchViewModelは.task(id:)による自動キャンセル＋Task.isCancelledで古い検索結果を破棄、UserDetailViewModelはasync letでプロフィールとリポジトリを並行取得している。\
+具体的な使い方: GitHubRepositoryをasync throwsで定義し、SearchViewModelはsearch()の冒頭で300msのTask.sleepによるdebounceを入れ、.task(id:)によるキャンセルとTask.isCancelledのチェックを組み合わせて古い検索結果を破棄している。UserDetailViewModelはasync letでプロフィールとリポジトリを並行取得している。\
 採用理由:\
 1, 従来のクロージャを用いた非同期処理と比べ、処理を同期的に書けて可読性が高い\
 2, .task(id:)とTask.isCancelledの組み合わせで「最新の結果だけ反映する」制御をシンプルに実現できること\
@@ -87,12 +94,13 @@ SwiftDataの採用理由\
 2, @Observable/@Query/.taskなど状態管理・非同期・DBとの繋ぎ込みが容易\
 
 8, Kingfisher\
-使用箇所: ユーザーアバターの画像表示(AvatarImageに集約)。\
+使用箇所: ユーザーアバターの画像表示。AvatarImageに集約し、検索結果一覧・お気に入り一覧・ユーザー詳細画面の3箇所で使用。\
 具体的な使い方: KFImage(URL(string:))にresizable/placeholder/frame/clipShapeを繋いで表示。\
-採用理由(URLSession自前実装との比較):\
-1, キャッシュ・重複リクエスト排除・UIImage変換を自前で書かずに済む\
-2, リストのスクロールで見えなくなった画像リクエストを自動でキャンセルしてくれる\
-3, KFImage自体がSwiftUIのViewなので、AsyncImage同様に宣言的に書ける\
+採用理由(標準のAsyncImageとの比較):\
+1, AsyncImageはデコード済み画像のメモリキャッシュを持たず、一覧をスクロールして戻るたびに再デコードが走る。3箇所のうち2箇所が一覧のため、この差が影響すると判断した\
+2, Kingfisherはメモリとディスクの2段キャッシュを持ち、同一URLへの重複リクエストも1本にまとめられる\
+
+補足: WWDC26でAsyncImageにもHTTPキャッシュが入ったが、iOS 27のSDKはXcode 27に含まれるため、Xcode 26.1.1で開発している本アプリでは利用できない。\
 
 9, UIKit\
 使用箇所: SafariView.swiftでSwiftUI ↔ UIKitのブリッジ層として利用。\
@@ -114,8 +122,8 @@ SwiftDataの採用理由\
 採用理由: ViewModelから通信部分の実装を切り離すことで、ViewModelの責務の範囲を減らすことができるため
 
 2, リポジトリパターン（protocolによる抽象化）\
-使用箇所: URLSessionで実際にfetchする部分をprotocolとして抽象化し、本番実装（実際の通信処理）とモック（テスト用ダミーデータ）を切り替え可能にするために使用\
-採用理由: URLSessionの処理部分の抽象度を上げ、モックか本番の通信処理かをViewModelから隠蔽することで、元のコードを変更せずとも単体テストを行えるようになるため
+使用箇所: GitHubRepositoryをprotocolとして定義し、本番実装のGitHubAPIRepositoryとテスト用のMockGitHubRepositoryを切り替えられるようにした。\
+採用理由: ViewModelがprotocolに依存するため、通信の実装を変えずに単体テストが書ける。またURLSessionProtocolでのモックと違い、MockGitHubRepositoryは[SearchUser]などのモデルを直接返すため、ViewModelのテストでJSONやステータスコードを用意する必要がない。
 
 3, MVVM\
 使用箇所: ロジック層全体(SearchViewModel, UserDetailViewModel, FavoriteViewModel)。\
@@ -127,9 +135,9 @@ SwiftDataの採用理由\
 
 ## 4. 工夫した点・こだわった点
 
-① Taskキャンセル部分（SearchViewModel）\
-問題: 検索キーワードを素早く入力した際、前の検索リクエストがキャンセルされずに走り続け、後から古い結果で最新の結果を上書きしてしまう可能性があった\
-解決方法: SwiftUIの.task(id:)にTask管理を委ね、keywordが変わるたびに前のTaskを自動キャンセルさせたうえで、await直後に guard !Task.isCancelled else { return } で二重チェックを入れた
+① 検索のdebounceとTaskキャンセル（SearchViewModel）\
+問題: 検索キーワードを素早く入力した際、リクエストの返る順序が保証されず、古い結果が最新の結果を上書きしてしまう可能性があった\
+解決方法: search()の冒頭で300msのTask.sleepを入れ、search()自体は.task(id: keyword)のクロージャから呼ぶことで、keywordが変わるたびにSwiftUIが前のTaskをキャンセルする形にした。300ms以内に次の入力が来た場合は待機中に抜けるため、リクエスト自体が発生しない。あわせて、キャンセルされたTaskがstateを書き換えないよう、stateを更新する3箇所(sleep後・通信成功後・catch内)にguard !Task.isCancelled else { return }を入れている。catch内にも必要なのは、通信中のキャンセルがCancellationErrorとしてcatchに入るため、正常系であるキャンセルでエラーメッセージを表示しないようにするため。
 
 ② エラーメッセージ表示の粒度の改善(NetworkError × ViewModel)\
 問題: 元々の実装ではエラーキャッチ時にユーザーへ表示されるメッセージが、画面ごとに1種類の固定文言(「検索に失敗しました」など)しかなく、ユーザーが何が原因でエラーが出ているのか、次に何をすべきかが分かりにくかった。\
@@ -141,21 +149,21 @@ SwiftDataの採用理由\
 
 ## 5. 苦労した点・分からなかった点・未対応の点
 
-非同期処理でのTaskキャンセル手法の選定
-
 1,検索のdebounce＋キャンセル処理について、実装方法を3パターンで検討し、最終的にどれが良いか迷った点。
 
-1つ目は、`SearchViewModel`が自前で`Task`を保持し、`cancel()`を明示的に呼んで管理する方式。ViewModel単体で挙動が完結し、UIフレームワークに依存しない（UIKit画面からでも同じ挙動を呼び出せる）というMVVMの利点を保ちやすい一方、`nonisolated(unsafe)`や`deinit`でのキャンセルなど、実装者自身が並行処理の安全性に気を配らなければいけない箇所が増える。
+1つ目は、`SearchViewModel`が自前で`Task`を保持し、`cancel()`を明示的に呼んで管理する方式。ViewModel単体で挙動が完結し、UIフレームワークに依存しない（UIKit画面からでも同じ挙動を呼び出せる）というMVVMの利点を保ちやすい一方、`nonisolated(unsafe)`や`deinit`でのキャンセルなど、実装者自身が並行処理の安全性に気を配らなければいけない箇所が増えると感じた。
 
 2つ目は、SwiftUIの`.task(id:)`にTaskの生成・キャンセル・View破棄時の後始末を任せる方式。実装は簡潔になり、テストも書きやすくなるが、「いつ検索するか」というトリガーの判断がView側に移るため、ViewModelとViewの結合度が上がり、ViewModel単体では挙動が完結しなくなる。
 
-3つ目は、`Task`のキャンセルを使わず、検索のたびに世代番号（generation）をインクリメントし、結果が返ってきた時点で最新の世代かどうかを比較して古ければ捨てる方式。ViewModel単体で完結する点は1つ目に近いメリットだが、通信中に世代が進んだ場合はその通信自体は中断できず、結果を捨てるだけになる。GitHub APIのレート制限を踏まえるとこの点はTaskキャンセル方式に劣ると考えた。
+3つ目は、`Task`のキャンセルを使わず、検索のたびに世代番号を進め、結果が返ってきた時点で最新の世代かどうかを比べて古ければ捨てる方式。1つ目と同様にViewModel単体で完結する一方、通信中に世代が進んでも通信そのものは止まらず、結果を捨てるだけになる。キャンセルが使えない環境向けの代替手段であると考えられ、今回はSwiftUIとSwift Concurrencyにキャンセルが用意されている以上、あえて選ぶ必要はないと判断した。
 
 3つともメリット、デメリットがあり、最終的には実装の簡潔さを優先して`.task(id:)`方式を採用したが、テスト容易性・UIフレームワーク非依存性・通信そのものの中断のどれを優先すべきかは状況次第だと思われ、どれが「ベスト」なのかについては、まだ自分の中で結論が出せておらず、引き続き勉強が必要だなと感じました。
 
 2,検索結果0件時の空状態表示に`ContentUnavailableView.search`を使うか、自前で日本語文言を指定するかがわからなかった。`.search`はローカライズ済みだが、プロジェクトのLocalizationsにjaが未設定だと英語にフォールバックする。今回はアプリ全体で日本語文言を直書きしている方針に合わせ、自前で文言を指定する方式を採用した。
 
 3,テストの粒度・スコープの判断が難しかった。「どこまでテストすべきか」「その層のテストで何を検証すべきか」の線引きに迷った。今回は各層のテストが「その層自身の責務だけを検証する」方針を意識して整理した（Network層はHTTP→エラー変換とデコード、Repository層は部品の結合、ViewModel層は状態遷移）。ただしテストの網羅性や粒度の最適解についてはまだ手探りの部分が多く、難しいと感じました。
+
+4,ViewとViewModelの責務分離をどこまで徹底すべきか判断がつかなかった。`.task(id:)`にキャンセルを任せると「いつ検索するか」のトリガー判断がView側に残り、お気に入りも`@Query`がViewでしか使えないプロパティラッパーであるため、一覧の状態がView側にある。自前でTaskを管理する、`@Query`を使わずRepositoryで包む、といった形でViewModelをViewから完全に独立させることもできたが、実装量と引き換えになる。フレームワークの機能に素直に乗ることとMVVMとしての純度のどちらを優先すべきか、今回は結論を出せなかった。
 
 ## 6. 生成 AI の利用について
 
