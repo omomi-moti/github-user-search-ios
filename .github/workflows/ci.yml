@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Resolve SPM dependencies
         run: xcodebuild -resolvePackageDependencies -project github-user-search-ios.xcodeproj -scheme github-user-search-ios
