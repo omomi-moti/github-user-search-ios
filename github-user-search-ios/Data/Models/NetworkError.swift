@@ -3,6 +3,7 @@ import Foundation
 enum NetworkError : Error, Equatable {
     case invalidURL // URLの組み立てに失敗した場合
     case rateLimited// 403（上限超過）/ 429（二次制限）：レート制限
+    case badRequest // 400：リクエストの形式や必須項目が不正
     case validationError // 422：検索クエリなどのバリデーションエラー
     case notFound // 404：指定したユーザーが存在しない
     case serverError(statusCode: Int)// 5xx：GitHub側のサーバーエラー
@@ -17,6 +18,8 @@ extension NetworkError{
                 return "URLが不正です"
             case .rateLimited:
                 return "アクセス制限中です、しばらく待ってからお試しください"
+            case .badRequest:
+                return "リクエストの内容が正しくありません"
             case .validationError:
                 return "検索キーワードが正しくありません"
             case .notFound:

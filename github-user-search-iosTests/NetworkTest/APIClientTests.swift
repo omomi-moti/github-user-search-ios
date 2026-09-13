@@ -77,6 +77,7 @@ struct APIClientTests {
         arguments: [
             (403, NetworkError.rateLimited),
             (404, NetworkError.notFound),
+            (400, NetworkError.badRequest),
             (422, NetworkError.validationError),
             (500, NetworkError.serverError(statusCode: 500)),
             (999, NetworkError.unknown(statusCode: 999))
