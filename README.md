@@ -26,6 +26,41 @@ iOS（Swift / SwiftUI）
 
    - Xcode上で実行先（シミュレータ または 実機）を選択し、`Cmd + R`
 
+## テストの実行
+
+### ユニットテスト
+
+```sh
+xcodebuild test \
+  -project github-user-search-ios.xcodeproj \
+  -scheme github-user-search-ios \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:github-user-search-iosTests
+```
+
+### ローカルサーバーとの結合テスト
+
+`LocalServerIntegrationTests` は、ローカルサーバー（[github-user-search-api](https://github.com/omomi-moti/github-user-search-api)）を起動した状態で、本物の `URLSession` を使って通信するテストです。環境変数 `LOCAL_SERVER` があるときだけ実行され、ないときはスキップされます。
+
+1. ローカルサーバーを起動する（`localhost:8080` で待ち受けます）
+
+   ```sh
+   cd github-user-search-api
+   go run .
+   ```
+
+2. 別のターミナルで、環境変数を付けてテストを実行する
+
+   ```sh
+   TEST_RUNNER_LOCAL_SERVER=1 xcodebuild test \
+     -project github-user-search-ios.xcodeproj \
+     -scheme github-user-search-ios \
+     -destination 'platform=iOS Simulator,name=iPhone 17' \
+     -only-testing:github-user-search-iosTests
+   ```
+
+   - `xcodebuild` は `TEST_RUNNER_` を付けた環境変数を、先頭の `TEST_RUNNER_` を外してテストプロセスに渡します（`TEST_RUNNER_LOCAL_SERVER` → `LOCAL_SERVER`）
+
 ## 対応OSバージョン
 
 **iOS 17.0+**
