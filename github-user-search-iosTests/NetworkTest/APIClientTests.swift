@@ -16,7 +16,7 @@ struct APIClientTests {
         }
         """.data(using: .utf8)!
         let client = APIClient(session: MockURLSession(statusCode: 200, data: json))
-        let url = Endpoint.searchUsers(keyword: "swift").url
+        let url = Endpoint.searchUsers(keyword: "swift").url(on: .github)
 
         let data = try await client.fetchData(url)
         let response: SearchUsersResponse = try client.decode(data)
@@ -38,7 +38,7 @@ struct APIClientTests {
         }
         """.data(using: .utf8)!
         let client = APIClient(session: MockURLSession(statusCode: 200, data: json))
-        let url = Endpoint.userDetail(username: "swiftlang").url
+        let url = Endpoint.userDetail(username: "swiftlang").url(on: .github)
 
         let data = try await client.fetchData(url)
         let detail: UserDetail = try client.decode(data)
@@ -62,7 +62,7 @@ struct APIClientTests {
         ]
         """.data(using: .utf8)!
         let client = APIClient(session: MockURLSession(statusCode: 200, data: json))
-        let url = Endpoint.repos(username: "swiftlang").url
+        let url = Endpoint.repos(username: "swiftlang").url(on: .github)
 
         let data = try await client.fetchData(url)
         let repos: [Repo] = try client.decode(data)
@@ -85,7 +85,7 @@ struct APIClientTests {
     )
     func fetchDataThrowsCorrectErrorForStatusCode(statusCode: Int, expectedError: NetworkError) async {
         let client = APIClient(session: MockURLSession(statusCode: statusCode, data: Data()))
-        let url = Endpoint.searchUsers(keyword: "x").url
+        let url = Endpoint.searchUsers(keyword: "x").url(on: .github)
 
         await #expect(throws: expectedError) {
             _ = try await client.fetchData(url)
