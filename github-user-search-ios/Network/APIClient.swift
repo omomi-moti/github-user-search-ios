@@ -41,8 +41,10 @@ struct APIClient {
     }
     func decode<T: Decodable> (_ data : Data) throws -> T { //Decodeに準拠したもののみ通す関数(エンドポイントを使い回すため)
         
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601 //サーバーのsavedAt("2026-09-13T10:00:00Z")をDateで受け取るため
         do{
-            return try JSONDecoder().decode(T.self, from: data)
+            return try decoder.decode(T.self, from: data)
         }
         
         catch{
