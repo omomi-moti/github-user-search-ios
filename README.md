@@ -61,6 +61,39 @@ xcodebuild test \
 
    - `xcodebuild` は `TEST_RUNNER_` を付けた環境変数を、先頭の `TEST_RUNNER_` を外してテストプロセスに渡します（`TEST_RUNNER_LOCAL_SERVER` → `LOCAL_SERVER`）
 
+### スタブサーバーとの結合テスト
+
+`StubServerIntegrationTests` は、GitHub API と同じ形のレスポンスを返すスタブサーバー（[github-user-search-api](https://github.com/omomi-moti/github-user-search-api) の `stub/`）を起動した状態で、本物の `URLSession` と `GitHubAPIRepository` を使って通信するテストです。環境変数 `STUB_SERVER` があるときだけ実行され、ないときはスキップされます。
+
+スタブサーバーは、特定の username・キーワードのときにエラーを返します。
+
+| username・キーワード | ステータス | `NetworkError` |
+|---|---|---|
+| `notfound` | 404 | `notFound` |
+| `ratelimited` | 403 | `rateLimited` |
+| `servererror` | 500 | `serverError(statusCode: 500)` |
+
+1. スタブサーバーを起動する（`localhost:8081` で待ち受けます）
+
+   ```sh
+   cd github-user-search-api
+   go run ./stub
+   ```
+
+2. 別のターミナルで、このリポジトリに移動してから、環境変数を付けてテストを実行する
+
+   ```sh
+   cd github-user-search-ios
+   TEST_RUNNER_STUB_SERVER=1 xcodebuild test \
+     -project github-user-search-ios.xcodeproj \
+     -scheme github-user-search-ios \
+     -destination 'platform=iOS Simulator,name=iPhone 17' \
+     -only-testing:github-user-search-iosTests/StubServerIntegrationTests
+   ```
+
+   - テストのコマンドは、スタブサーバーを起動したターミナル（github-user-search-api）ではなく、このリポジトリで実行します。違う場所で実行すると `xcodebuild: error: 'github-user-search-ios.xcodeproj' does not exist.` になります
+   - スタブサーバーを起動していないと、すべてのテストが `NSURLErrorDomain Code=-1004`（接続できない）で失敗します
+
 ## 対応OSバージョン
 
 **iOS 17.0+**
