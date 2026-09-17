@@ -6,6 +6,7 @@ enum NetworkError : Error, Equatable {
     case badRequest // 400：リクエストの形式や必須項目が不正
     case validationError // 422：検索クエリなどのバリデーションエラー
     case notFound // 404：指定したユーザーが存在しない
+    case conflict // 409：すでに登録されている
     case serverError(statusCode: Int)// 5xx：GitHub側のサーバーエラー
     case decodingError// 2xxだがJSONのデコードに失敗した場合
     case unknown(statusCode: Int?)// 上記以外の想定外のステータスコード
@@ -24,6 +25,8 @@ extension NetworkError{
                 return "検索キーワードが正しくありません"
             case .notFound:
                 return "ユーザーが見つかりませんでした"
+            case .conflict:
+                return "すでに登録されています"
             case .serverError:
                 return "サーバーエラーが発生しました。時間をおいて再度お試しください"
             case .decodingError:

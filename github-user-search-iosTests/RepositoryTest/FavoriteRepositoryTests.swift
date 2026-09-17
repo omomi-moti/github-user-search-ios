@@ -53,4 +53,45 @@ struct FavoriteRepositoryTests {
             _ = try await repository.fetchFavorites()
         }
     }
+
+    //github-user-search-api#14 の POST /favorites が返した実際のレスポンス（httptestで {"username":"swift"} をPOSTして取得）
+    private let createdJSON = """
+    {"username":"swift","avatarURL":"","name":null,"savedAt":"2026-09-17T02:24:07Z"}
+    """
+
+    @Test("お気に入りの登録に成功した場合、追加された1件が返る")
+    func addFavoriteSucceeds() async throws {
+        let repository = makeRepository(statusCode: 201, json: createdJSON)
+
+        let favorite = try await repository.addFavorite(username: "swift", avatarURL: "", name: nil)
+
+        #expect(favorite.username == "swift")
+        #expect(favorite.name == nil)
+    }
+
+    @Test("登録済みの場合、NetworkError.conflictになる")
+    func addFavoriteConflict() async {
+        let repository = makeRepository(statusCode: 409, json: "favorite already exists")
+
+        await #expect(throws: NetworkError.conflict) {
+            _ = try await repository.addFavorite(username: "omomi-moti", avatarURL: "", name: nil)
+        }
+    }
+
+    @Test("登録するとき、POSTでJSONのボディを送る")
+    func addFavoriteSendsPostWithJSONBody() async throws {
+        let session = RecordingURLSession(statusCode: 201, data: createdJSON.data(using: .utf8)!)
+        let repository = FavoriteAPIRepository(client: APIClient(session: session))
+
+        _ = try await repository.addFavorite(username: "swift", avatarURL: "https://example.com/a.png", name: "The Swift")
+
+        let request = try #require(session.lastRequest)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.absoluteString == "http://localhost:8080/favorites")
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
+
+        let body = try #require(request.httpBody)
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+        #expect(json == ["username": "swift", "avatarURL": "https://example.com/a.png", "name": "The Swift"])
+    }
 }
