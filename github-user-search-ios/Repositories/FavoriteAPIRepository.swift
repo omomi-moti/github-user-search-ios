@@ -23,4 +23,9 @@ struct FavoriteAPIRepository: FavoriteRepository {
         let data = try await client.fetchData(url, method: "POST", body: body)
         return try client.decode(data) //サーバーは追加した1件を返す
     }
+    
+    func deleteFavorite(username: String) async throws {
+        let url = Endpoint.favorite(username: username).url(on: server)
+        _ = try await client.fetchData(url, method: "DELETE") //204はボディがないので、デコードしない
+    }
 }

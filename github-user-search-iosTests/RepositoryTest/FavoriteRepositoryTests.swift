@@ -94,4 +94,33 @@ struct FavoriteRepositoryTests {
         let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
         #expect(json == ["username": "swift", "avatarURL": "https://example.com/a.png", "name": "The Swift"])
     }
+    
+    @Test("お気に入りの削除に成功した場合(204)、エラーにならない")
+    func deleteFavoriteSucceeds() async throws {
+        let repository = makeRepository(statusCode: 204, json: "")
+
+        try await repository.deleteFavorite(username: "swift")
+    }
+
+    @Test("登録されていない場合(404)、NetworkError.notFoundになる")
+    func deleteFavoriteNotFound() async {
+        let repository = makeRepository(statusCode: 404, json: "favorite not found")
+
+        await #expect(throws: NetworkError.notFound) {
+            try await repository.deleteFavorite(username: "nobody")
+        }
+    }
+
+    @Test("削除するとき、DELETEで1件のURLに送る")
+    func deleteFavoriteSendsDelete() async throws {
+        let session = RecordingURLSession(statusCode: 204, data: Data())
+        let repository = FavoriteAPIRepository(client: APIClient(session: session))
+
+        try await repository.deleteFavorite(username: "swift")
+
+        let request = try #require(session.lastRequest)
+        #expect(request.httpMethod == "DELETE")
+        #expect(request.url?.absoluteString == "http://localhost:8080/favorites/swift")
+        #expect(request.httpBody == nil)
+    }
 }
