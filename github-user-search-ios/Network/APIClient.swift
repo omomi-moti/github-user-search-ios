@@ -7,11 +7,16 @@ struct APIClient {
         self.session = session
     }
 
-    func fetchData(_ url : URL?) async throws -> Data{
+    func fetchData(_ url : URL?, method : String = "GET", body : Data? = nil) async throws -> Data{ //methodとbodyは省略するとGETになる
         guard  let url  else{
             throw NetworkError.invalidURL
         }
         var request = URLRequest(url : url)
+        request.httpMethod = method
+        request.httpBody = body
+        if body != nil {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type") //送るボディがJSONであることを伝える
+        }
         
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept") //JSON形式で、GitHub APIバージョンに準拠したレスポンスを要求する
         request.setValue("github-user-search-ios", forHTTPHeaderField: "User-Agent") //リクエスト先を提示
@@ -33,6 +38,8 @@ struct APIClient {
             throw NetworkError.validationError
         case 404:
             throw NetworkError.notFound
+        case 409:
+            throw NetworkError.conflict
         case 500...599:
             throw NetworkError.serverError(statusCode: httpResponse.statusCode)
         default :

@@ -13,4 +13,11 @@ struct MockFavoriteRepository: FavoriteRepository {
             ServerFavorite(username: "onevcat", avatarURL: "https://avatars.githubusercontent.com/u/1019875?v=4", name: nil, savedAt: Date(timeIntervalSince1970: 0))
         ]
     }
+
+    func addFavorite(username: String, avatarURL: String, name: String?) async throws -> ServerFavorite {
+        if shouldFail {
+            throw errorToThrow
+        }
+        return ServerFavorite(username: username, avatarURL: avatarURL, name: name, savedAt: Date(timeIntervalSince1970: 0))
+    }
 }
