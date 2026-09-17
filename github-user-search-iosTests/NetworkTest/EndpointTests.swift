@@ -23,4 +23,9 @@ struct EndpointTests {
         let url = Endpoint.favorites.url(on: .local)
         #expect(url?.absoluteString == "http://localhost:8080/favorites")
     }
+    @Test("ローカルサーバーのお気に入り1件のURLが正しく組み立てられる")
+    func favoriteURLIsCorrect(){
+        let url = Endpoint.favorite(username: "swift").url(on: .local)
+        #expect(url?.absoluteString == "http://localhost:8080/favorites/swift")
+    }
 }

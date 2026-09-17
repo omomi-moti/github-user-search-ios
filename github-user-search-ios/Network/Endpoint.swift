@@ -5,7 +5,8 @@ enum Endpoint{
     case userDetail(username : String)//userの詳細情報を取得するためのエンドポイント
     case repos(username : String , page : Int = 1)//ユーザーのリポジトリを取得するためのエンドポイント
     case favorites//お気に入り一覧を取得するためのエンドポイント（ローカルサーバー）
-
+    case favorite(username: String)
+    
     func url(on server: APIServer) -> URL? { //接続先を受け取ってURLを組み立てる
         var components = URLComponents()
         components.scheme = server.scheme
@@ -29,6 +30,9 @@ enum Endpoint{
 
         case .favorites:
             components.path = "/favorites"
+        
+        case .favorite(let username):
+            components.path = "/favorites/\(username)"
         }
         return components.url
     }

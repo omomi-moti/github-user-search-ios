@@ -20,4 +20,9 @@ struct MockFavoriteRepository: FavoriteRepository {
         }
         return ServerFavorite(username: username, avatarURL: avatarURL, name: name, savedAt: Date(timeIntervalSince1970: 0))
     }
+    func deleteFavorite(username: String) async throws {
+        if shouldFail {
+            throw errorToThrow
+        }
+    }
 }
