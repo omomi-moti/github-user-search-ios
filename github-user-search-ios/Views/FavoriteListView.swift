@@ -26,7 +26,7 @@ struct FavoriteListView: View {
                 }
             }
 
-            Section("サーバー") { //サーバーのお気に入りは読み取り専用で表示する
+            Section("サーバー") {//サーバーのお気に入りは、左にスワイプすると削除できる
                 switch serverViewModel.state {
                 case .idle, .loading:
                     ProgressView()
@@ -41,6 +41,14 @@ struct FavoriteListView: View {
                                 Text(favorite.name ?? favorite.username)
                             }
                         }
+                        .onDelete { indexSet in
+                            let usernames = indexSet.map { serverFavorites[$0].username }
+                            Task {
+                                for username in usernames {
+                                    await serverViewModel.delete(username: username)
+                                }
+                            }
+                        }
                     }
                 case .error(let message):
                     RetryView(message: message, retryAction: {
@@ -48,6 +56,16 @@ struct FavoriteListView: View {
                     })
                 }
             }
+        }
+        .alert("サーバーから削除できませんでした", isPresented: Binding(
+            get: { serverViewModel.deleteErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented { serverViewModel.deleteErrorMessage = nil } //アラートを閉じたらメッセージを消す
+            }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(serverViewModel.deleteErrorMessage ?? "")
         }
         .navigationTitle("お気に入り")
         .navigationDestination(for: String.self) { username in
