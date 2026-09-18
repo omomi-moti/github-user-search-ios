@@ -21,7 +21,13 @@ struct APIClient {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept") //JSON形式で、GitHub APIバージョンに準拠したレスポンスを要求する
         request.setValue("github-user-search-ios", forHTTPHeaderField: "User-Agent") //リクエスト先を提示
         
-        let (data,response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError where isConnectionError(error) {
+            throw NetworkError.connectionFailed
+        }
         
         guard let httpResponse = response as? HTTPURLResponse else{
             throw NetworkError.unknown(statusCode: nil)
@@ -46,6 +52,15 @@ struct APIClient {
             throw NetworkError.unknown(statusCode: httpResponse.statusCode)
         }
     }
+    private func isConnectionError(_ error : URLError) -> Bool { //キャンセル(.cancelled)などは変換せず、そのまま通す
+        switch error.code {
+        case .notConnectedToInternet, .cannotConnectToHost, .timedOut, .networkConnectionLost:
+            return true
+        default:
+            return false
+        }
+    }
+
     func decode<T: Decodable> (_ data : Data) throws -> T { //Decodeに準拠したもののみ通す関数(エンドポイントを使い回すため)
         
         let decoder = JSONDecoder()
