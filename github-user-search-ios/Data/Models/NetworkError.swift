@@ -8,6 +8,7 @@ enum NetworkError : Error, Equatable {
     case notFound // 404：指定したユーザーが存在しない
     case conflict // 409：すでに登録されている
     case serverError(statusCode: Int)// 5xx：GitHub側のサーバーエラー
+    case connectionFailed // 通信できなかった場合（オフライン・サーバーに届かない・時間切れ）
     case decodingError// 2xxだがJSONのデコードに失敗した場合
     case unknown(statusCode: Int?)// 上記以外の想定外のステータスコード
 }
@@ -29,6 +30,8 @@ extension NetworkError{
                 return "すでに登録されています"
             case .serverError:
                 return "サーバーエラーが発生しました。時間をおいて再度お試しください"
+            case .connectionFailed:
+                return "通信できませんでした。通信環境を確認してください"
             case .decodingError:
                 return "データの読み込みに失敗しました"
             case .unknown:

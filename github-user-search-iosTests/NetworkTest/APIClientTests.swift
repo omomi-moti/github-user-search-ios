@@ -103,6 +103,29 @@ struct APIClientTests {
         }
     }
 
+    @Test(
+        "接続できないときのURLErrorはNetworkError.connectionFailedになる",
+        arguments: [URLError.Code.notConnectedToInternet, .cannotConnectToHost, .timedOut, .networkConnectionLost]
+    )
+    func fetchDataThrowsConnectionFailed(code: URLError.Code) async {
+        let client = APIClient(session: MockURLSession(statusCode: 200, data: Data(), error: URLError(code)))
+        let url = Endpoint.searchUsers(keyword: "x").url(on: .github)
+
+        await #expect(throws: NetworkError.connectionFailed) {
+            _ = try await client.fetchData(url)
+        }
+    }
+
+    @Test("キャンセルのURLErrorはNetworkErrorに変換されない")
+    func fetchDataDoesNotConvertCancelled() async {
+        let client = APIClient(session: MockURLSession(statusCode: 200, data: Data(), error: URLError(.cancelled)))
+        let url = Endpoint.searchUsers(keyword: "x").url(on: .github)
+
+        await #expect(throws: URLError.self) {
+            _ = try await client.fetchData(url)
+        }
+    }
+
     @Test("URLがnilの場合NetworkError.invalidURLがthrowされる")
     func fetchDataThrowsInvalidURLWhenURLIsNil() async {
         let client = APIClient(session: MockURLSession(statusCode: 200, data: Data()))
